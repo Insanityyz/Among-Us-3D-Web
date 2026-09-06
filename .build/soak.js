@@ -2,8 +2,7 @@
 const fs=require('fs'),path=require('path'),os=require('os');
 const {documentStub}=require('./stub_env.js');
 const DIR=__dirname;
-const PARTS=['30_logic.js','40_three.js','41_ship.js','50_player.js','60_server.js','65_audio_fx.js',
-  '70_tasks.js','80_meeting.js','90_ui.js','95_game.js','99_main.js'];
+const PARTS=require('./parts.js');
 
 const errors=[];const seen=new Set();
 function fail(where,e){

@@ -352,7 +352,12 @@ function makeEl(tag,id){
     dataset:{},value:'',textContent:'',title:'',disabled:false,checked:false,width:300,height:150,
     scrollTop:0,scrollHeight:100,scrollLeft:0,scrollWidth:100,clientWidth:300,clientHeight:150,
     offsetWidth:300,offsetHeight:150,innerHTML:'',outerHTML:'',hidden:false,tabIndex:0,
-    _listeners:{},_attrs:{},
+    _listeners:{},_attrs:{},isConnected:true,
+  };
+  // a real element in the document reports its box; the render diagnostics rely on this
+  el.getBoundingClientRect=function(){
+    const w=el.clientWidth||0,h=el.clientHeight||0;
+    return {x:0,y:0,left:0,top:0,right:w,bottom:h,width:w,height:h};
   };
   el.classList=makeClassList(el);
   Object.defineProperty(el,'children',{get(){return el._children;}});
@@ -407,12 +412,17 @@ function makeEl(tag,id){
 }
 const elements=new Map();
 function byId(id){
-  if(!elements.has(id)){const e=makeEl(id==='gl'?'div':'div',id);elements.set(id,e);}
+  if(!elements.has(id)){const e=makeEl('div',id);elements.set(id,e);}
   return elements.get(id);
 }
-/* ids that must pre-exist with particular tags */
+/* ids that must pre-exist with particular tags, mirroring 20_body.html */
 ['gl','mapCanvas','chatField','bootFill','bootMsg','fps','timerBar'].forEach(id=>{
-  const e=byId(id); if(id==='mapCanvas'){e.tagName='CANVAS';e.width=920;e.height=560;}
+  const e=byId(id);
+  if(id==='gl'){ // <canvas id="gl"> is the WebGL target: full viewport, in the document
+    e.tagName='CANVAS'; e.nodeName='CANVAS';
+    e.clientWidth=1280; e.clientHeight=720; e.width=1280; e.height=720;
+  }
+  if(id==='mapCanvas'){e.tagName='CANVAS';e.width=920;e.height=560;}
 });
 const documentStub={
   _listeners:{},

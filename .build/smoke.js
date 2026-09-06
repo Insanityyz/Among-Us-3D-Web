@@ -2,8 +2,7 @@
 const fs=require('fs'),path=require('path'),os=require('os');
 const {documentStub}=require('./stub_env.js');
 const DIR=__dirname;
-const PARTS=['30_logic.js','40_three.js','41_ship.js','50_player.js','60_server.js','65_audio_fx.js',
-  '70_tasks.js','80_meeting.js','90_ui.js','95_game.js','99_main.js'];
+const PARTS=require('./parts.js');
 
 /* ------------------------------------------------------------------- runner */
 const MAX_FRAMES=Number(process.env.FRAMES||200000);
@@ -32,7 +31,7 @@ process.on('unhandledRejection',e=>fail('unhandledRejection',e));
 
 let src=PARTS.map(f=>fs.readFileSync(path.join(DIR,f),'utf8')).join('\n');
 src=src.replace("THREE=await loadThree((p,m)=>setBoot(p,m));","THREE=globalThis.__THREE;");
-src+="\nglobalThis.__T={G,Game,Actions,CLIENT,UI,MEET,EJECT,TASKUI,SCREENS,VISUAL,FX,AUDIO,SHIP,RENDER,NET,SAB,LOOP,Profile,CAM,PANELS,openStation,MAP,buildMap,updateCameraDirector,pollActions,frame,get SERVER(){return SERVER;},set SERVER(v){SERVER=v;}};\n";
+src+="\nglobalThis.__T={G,Game,Actions,CLIENT,UI,MEET,EJECT,TASKUI,SCREENS,VISUAL,FX,AUDIO,SHIP,RENDER,NET,SAB,LOOP,Profile,CAM,PANELS,DIAG,setSafeMode,openStation,MAP,buildMap,updateCameraDirector,pollActions,frame,get SERVER(){return SERVER;},set SERVER(v){SERVER=v;}};\n";
 const tmp=path.join(os.tmpdir(),'smoke_'+Date.now()+'.mjs');
 fs.writeFileSync(tmp,src,'utf8');
 
@@ -154,6 +153,40 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
     T.NET.send({t:'door',id:T.G.meId,door:d.def.id});
   });
   await sleep(60);
+  await step('render diagnostics',()=>{
+    const D=T.DIAG;
+    const cleanup=()=>{
+      try{
+        D.visible=false; if(D.el) D.el.style.display='none';
+        if(T.RENDER.safeMode) D.setSafe(false);
+        D.setFullbright(false); T.RENDER.fogOff=false;
+      }catch(e){}
+    };
+    try{
+      if(!D) throw new Error('DIAG module missing');
+      const probs=D.verifyCanvas();
+      if(probs&&probs.length) throw new Error('canvas sanity: '+probs.join('; '));
+      D.build(); D.toggle(true);
+      const rep=D.report();
+      if(typeof rep!=='string'||rep.length<200) throw new Error('report too short');
+      for(const need of ['three','canvas','lights','camera','luma','phase','fog','scene objects'])
+        if(rep.indexOf(need)<0) throw new Error('report missing "'+need+'"');
+      D.measureNow();             // stub renderer has no read-back -> null, never a throw
+      if(T.RENDER.luma!=null) throw new Error('unexpected luma from the stub renderer');
+      D.setSafe(true);  if(!T.RENDER.safeMode) throw new Error('safe mode did not engage');
+      D.setFullbright(true); if(!(T.RENDER.lightBoost>1)) throw new Error('fullbright did not engage');
+      T.RENDER.fogOff=true;
+      D.refresh();                // panel redraw with every switch flipped
+      for(let i=0;i<40;i++) D.tick(0.05);   // watchdog must stay quiet without read-back
+      if(D.bad!==0) throw new Error('watchdog fired without read-back (bad='+D.bad+')');
+      if(T.RENDER.safeMode!==true) throw new Error('watchdog silently disabled safe mode');
+      console.log('        report lines='+rep.split('\n').length+' | safe/fullbright/fog toggles ok');
+    } finally { cleanup(); }
+    if(D.visible) throw new Error('panel did not close');
+    if(T.RENDER.safeMode) throw new Error('safe mode left engaged');
+    if((T.RENDER.lightBoost||1)!==1) throw new Error('lightBoost left engaged');
+    if(T.RENDER.fogOff) throw new Error('fogOff left engaged');
+  });
   await step('per-room door sabotage',()=>{
     const S=T.SERVER.state;
     if(S.sab) T.SERVER.endSabotage(S.sab.type);

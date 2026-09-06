@@ -500,6 +500,16 @@ function initRenderer(canvas){
   renderer.shadowMap.enabled=false;
   renderer.autoClear=true;
   renderer.setClearColor(0x02040a,1);
+  // a shader that fails to compile renders as nothing and only logs deep inside three.js, so
+  // surface it: the diagnostics panel shows it and the watchdog can react to it.
+  RENDER.shaderErrors=[];
+  if(renderer.debug&&'onShaderError' in renderer.debug){
+    renderer.debug.onShaderError=(gl,program,vLog,fLog)=>{
+      const msg=String((fLog&&String(fLog).trim())||(vLog&&String(vLog).trim())||'unknown shader error').slice(0,900);
+      RENDER.shaderErrors.push(msg);
+      console.error('[render] shader compile failed:\n'+msg);
+    };
+  }
 
   const scene=new THREE.Scene();
   RENDER.scene=scene;
@@ -530,6 +540,20 @@ class Post{
       return rt;
     };
     this.mk=mk;
+    // 8-bit probe targets: cheap read-back so the game can tell whether it is actually
+    // drawing something instead of silently showing a black viewport.
+    this.mkByte=(w,h)=>{
+      const rt=new THREE.WebGLRenderTarget(w,h,{
+        minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,
+        type:THREE.UnsignedByteType,depthBuffer:false,stencilBuffer:false,
+      });
+      rt.texture.generateMipmaps=false;
+      return rt;
+    };
+    this.probeScene=this.mkByte(8,8);
+    this.probeFinal=this.mkByte(8,8);
+    this.bufA=new Uint8Array(8*8*4);
+    this.bufB=new Uint8Array(8*8*4);
     this.brightMat=new THREE.ShaderMaterial({
       uniforms:{tDiffuse:{value:null},threshold:{value:0.72},knee:{value:0.35}},
       vertexShader:VS_QUAD,
@@ -636,6 +660,55 @@ class Post{
     this.pass(this.compMat,null);
     this.r.setRenderTarget(null);
   }
+  /* Down-sample the raw scene pass and the final composite into 8-bit targets and read them
+     back, so we can measure what the player is actually seeing. Returns null when read-back is
+     unavailable (headless stubs, exotic drivers). */
+  measure(){
+    if(!this.rtScene||typeof this.r.readRenderTargetPixels!=='function') return null;
+    const gl=this.r.getContext&&this.r.getContext();
+    if(!gl||typeof gl.readPixels!=='function') return null;
+    const bu=this.blurMat.uniforms;
+    const keep={td:bu.tDiffuse.value,tex:bu.texel.value.clone(),dir:bu.dir.value.clone()};
+    try{
+      bu.tDiffuse.value=this.rtScene.texture;
+      bu.texel.value.set(0,0); bu.dir.value.set(0,0);   // blur with zero offsets == a plain copy
+      this.pass(this.blurMat,this.probeScene);
+      this.pass(this.compMat,this.probeFinal);
+      this.r.readRenderTargetPixels(this.probeScene,0,0,8,8,this.bufA);
+      this.r.readRenderTargetPixels(this.probeFinal,0,0,8,8,this.bufB);
+    }catch(e){
+      return null;
+    }finally{
+      bu.tDiffuse.value=keep.td; bu.texel.value.copy(keep.tex); bu.dir.value.copy(keep.dir);
+      this.r.setRenderTarget(null);
+    }
+    const lum=(a)=>{
+      let sum=0,mx=0;
+      for(let i=0;i<a.length;i+=4){
+        const v=0.2126*a[i]+0.7152*a[i+1]+0.0722*a[i+2];
+        sum+=v; if(v>mx) mx=v;
+      }
+      const n=a.length/4;
+      return {mean:+(sum/n/255).toFixed(4),max:+(mx/255).toFixed(4)};
+    };
+    return {scene:lum(this.bufA),final:lum(this.bufB)};
+  }
+}
+
+/* Safe mode skips the post chain and lets three tone-map + encode straight to the canvas.
+   Used by the diagnostics panel and by the black-frame watchdog. */
+function setSafeMode(on){
+  const r=RENDER.renderer; if(!r) return;
+  RENDER.safeMode=!!on;
+  if(RENDER.safeMode){
+    r.outputColorSpace=THREE.SRGBColorSpace;
+    r.toneMapping=THREE.ACESFilmicToneMapping;
+    r.toneMappingExposure=1.3;
+  }else{
+    r.outputColorSpace=THREE.LinearSRGBColorSpace; // our composite tone-maps + encodes
+    r.toneMapping=THREE.NoToneMapping;
+  }
+  try{ if(RENDER.scene&&r.compile) r.compile(RENDER.scene,RENDER.camera); }catch(e){}
 }
 
 /* ---------- studio environment for reflections ---------- */

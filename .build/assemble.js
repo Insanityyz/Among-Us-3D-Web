@@ -6,19 +6,7 @@ const {execFileSync}=require('child_process');
 const DIR=__dirname;
 const OUT=path.resolve(DIR,'..','index.html');
 
-const JS_PARTS=[
-  '30_logic.js',
-  '40_three.js',
-  '41_ship.js',
-  '50_player.js',
-  '60_server.js',
-  '65_audio_fx.js',
-  '70_tasks.js',
-  '80_meeting.js',
-  '90_ui.js',
-  '95_game.js',
-  '99_main.js',
-];
+const JS_PARTS=require('./parts.js');
 
 const head=fs.readFileSync(path.join(DIR,'00_head.html'),'utf8');
 const css=fs.readFileSync(path.join(DIR,'10.css'),'utf8');

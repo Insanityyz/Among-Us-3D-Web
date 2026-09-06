@@ -231,8 +231,15 @@ function frame(now){
   if(G.client.thirdPerson&&G.phase==='playing') showSelf(true);
 
   // --- render ---
-  RENDER.post.render(RENDER.scene,RENDER.camera);
+  if(RENDER.safeMode){
+    // bypass the post chain entirely: straight to the canvas with three's own tone mapping
+    RENDER.renderer.setRenderTarget(null);
+    RENDER.renderer.render(RENDER.scene,RENDER.camera);
+  } else {
+    RENDER.post.render(RENDER.scene,RENDER.camera);
+  }
   RENDER.drawCalls=RENDER.renderer.info.render.calls;
+  if(typeof DIAG!=='undefined') DIAG.tick(dt);
 }
 
 /* ============================================================================
@@ -255,12 +262,13 @@ async function boot(){
     G.net=NET;
     refreshColliders();
 
-    // canvas + renderer
-    const host=$('gl');
-    const canvas=document.createElement('canvas');
-    canvas.id='glcanvas';
-    canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;display:block';
-    host.appendChild(canvas);
+    // canvas + renderer.
+    // #gl in the markup IS the canvas we draw into. Never append a second canvas inside it:
+    // children of a <canvas> are fallback content that browsers do not display, which shows up
+    // as a permanently black viewport while the whole HUD keeps working.
+    const canvas=$('gl');
+    if(!canvas||canvas.tagName!=='CANVAS') throw new Error('#gl must be a <canvas> element');
+    if(canvas.parentNode&&canvas.parentNode.tagName==='CANVAS') throw new Error('renderer canvas is nested inside another canvas');
     RENDER.canvas=canvas;
     const renderer=initRenderer(canvas);
     RENDER.post=new Post(renderer);
@@ -287,7 +295,7 @@ async function boot(){
     setBoot(88,'Calibrating HUD…');
     await yieldFrame();
     detectTouch();
-    bindInput(host);
+    bindInput(canvas);
     UI.init();
     UI.buildSabIcons();
     Profile.load();
@@ -310,6 +318,9 @@ async function boot(){
     const bi=$('buildInfo');
     if(bi) bi.innerHTML='Three.js r'+(THREE.REVISION||'?')+' &middot; '+(RENDER.isWebGL2?'WebGL2':'WebGL1')+
       ' &middot; '+(G.isTouch?'touch':'keyboard + mouse');
+
+    // make sure the picture is really on screen — a silent black viewport is the worst failure mode
+    if(typeof DIAG!=='undefined') DIAG.verifyCanvas();
 
     G.phase='menu';
     LOOP.last=performance.now();

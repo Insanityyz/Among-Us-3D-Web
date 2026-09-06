@@ -536,14 +536,16 @@ function updateLighting(dt){
   const targetN=lightsOut?0.05:1;
   const targetE=lightsOut?1.0:0;
   const k=1-Math.pow(0.0025,dt);
-  for(const l of SHIP.lights.normal) l.intensity=lerp(l.intensity,l.userData.base*(G.client.quality==='low'?0.8:1)*targetN,k);
-  for(const l of SHIP.lights.emerg) l.intensity=lerp(l.intensity,(lightsOut?2.6:0)*targetE,k);
-  SHIP.lights.amb.intensity=lerp(SHIP.lights.amb.intensity,(lightsOut?0.12:(G.client.quality==='low'?0.85:0.5)),k);
-  SHIP.lights.hemi.intensity=lerp(SHIP.lights.hemi.intensity,(lightsOut?0.14:0.42),k);
+  const boost=RENDER.lightBoost||1;   // diagnostics / watchdog can crank this to prove lighting is the problem
+  for(const l of SHIP.lights.normal) l.intensity=lerp(l.intensity,l.userData.base*(G.client.quality==='low'?0.8:1)*targetN*boost,k);
+  for(const l of SHIP.lights.emerg) l.intensity=lerp(l.intensity,(lightsOut?2.6:0)*targetE*boost,k);
+  SHIP.lights.amb.intensity=lerp(SHIP.lights.amb.intensity,(lightsOut?0.12:(G.client.quality==='low'?0.85:0.5))*boost,k);
+  SHIP.lights.hemi.intensity=lerp(SHIP.lights.hemi.intensity,(lightsOut?0.14:0.42)*boost,k);
   // fog = vision
   const baseFog=0.0185;
   const fog=lightsOut?(me&&me.role==='impostor'?0.05:0.115):baseFog/clamp(vision,0.25,3);
-  RENDER.scene.fog.density=lerp(RENDER.scene.fog.density,G.phase==='playing'?fog:0.006,1-Math.pow(0.02,dt));
+  const fogTarget=RENDER.fogOff?0:(G.phase==='playing'?fog:0.006);
+  RENDER.scene.fog.density=lerp(RENDER.scene.fog.density,fogTarget,1-Math.pow(0.02,dt));
   const u=RENDER.post.compMat.uniforms;
   const dark=lightsOut?(me&&me.role==='impostor'?0.16:(me&&me.alive?0.52:0.2)):0;
   u.dark.value=lerp(u.dark.value,dark,1-Math.pow(0.02,dt));

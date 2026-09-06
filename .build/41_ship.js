@@ -27,7 +27,9 @@ function initMaterials(scene){
   MAT.blob=new THREE.MeshBasicMaterial({map:RENDER.tex.dot,transparent:true,depthWrite:false,fog:false,opacity:.6,toneMapped:false});
   MAT.nameTag=(tex)=>new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false,fog:false,depthTest:true});
   scene.environment=RENDER.envTex;
-  scene.environmentIntensity=0.55;
+  // scene.environmentIntensity only exists in three r163+; per-material envMapIntensity is the
+  // control that works everywhere, so only set the scene-level one when it is really supported.
+  if('environmentIntensity' in scene) scene.environmentIntensity=0.55;
 }
 
 function flipFaces(g){
