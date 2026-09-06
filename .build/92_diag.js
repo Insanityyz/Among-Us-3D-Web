@@ -7,8 +7,28 @@
    Toggle with F9, or from the pause menu, or it opens itself if the watchdog
    decides the player is staring at nothing.
    ========================================================================== */
+/* Every caught runtime error lands here so a broken feature can never fail silently:
+   the diagnostics panel lists them and the copy-report button ships them to me. */
+const ERRLOG=[];
+function errLog(where,e){
+  const msg=where+': '+(e&&e.stack?String(e.stack).split('\n').slice(0,3).join(' | '):(e&&e.message||String(e)));
+  ERRLOG.push(msg); if(ERRLOG.length>60) ERRLOG.shift();
+  console.error('[game] '+msg);
+  if(typeof DIAG!=='undefined'&&DIAG.errToast) DIAG.errToast();
+}
+if(typeof window!=='undefined'){
+  window.addEventListener('error',ev=>{ errLog('window.onerror',ev.error||ev.message); });
+  window.addEventListener('unhandledrejection',ev=>{ errLog('unhandledrejection',ev.reason); });
+}
+
 const DIAG={
-  el:null, out:null, visible:false,
+  el:null, out:null, visible:false, lastPh:null, phT:0, errToastT:0,
+  errToast(){
+    if(typeof G==='undefined'||!G.time) return;
+    if(G.time-this.errToastT<8) return;
+    this.errToastT=G.time;
+    UI.toast('A script error was captured — press F9 for the report','bad',4200);
+  },
   acc:0, uiAcc:0, bad:0, hist:[], warned:false, autoSafe:false, autoBright:false,
 
   /* ---------- panel ---------- */
@@ -186,6 +206,10 @@ const DIAG={
     say('luma scene mean/max', m?m.scene.mean+' / '+m.scene.max:'not measured');
     say('luma final mean/max', m?m.final.mean+' / '+m.final.max:'not measured');
     if(this.hist.length) say('final luma history', this.hist.map(v=>v.toFixed(3)).join(' '));
+    if(typeof ERRLOG!=='undefined'&&ERRLOG.length){
+      say('captured errors', ERRLOG.length+' (last '+Math.min(6,ERRLOG.length)+' shown)');
+      ERRLOG.slice(-6).forEach((m,i)=>L.push('   '+(i+1)+'. '+m.slice(0,220)));
+    }
     if(this.autoSafe||this.autoBright) say('watchdog action', (this.autoSafe?'auto safe-mode ':'')+(this.autoBright?'auto fullbright':''));
     return L.join('\n');
   },
@@ -230,6 +254,27 @@ const DIAG={
       this.uiAcc+=dt;
       if(this.uiAcc>0.2){ this.uiAcc=0; this.measureNow(); this.refresh(); }
       return;
+    }
+    // ---- stuck-phase recovery: a phase that can no longer advance freezes the whole
+    // match (the server only ticks while playing/meeting), so detect and heal it ----
+    if(G.phase!==this.lastPh){ this.lastPh=G.phase; this.phT=0; }
+    this.phT+=dt;
+    if(G.phase==='eject'){
+      const act=typeof EJECT!=='undefined'&&!!EJECT.active;
+      if((!act&&this.phT>6)||(act&&this.phT>45)){
+        errLog('watchdog',new Error('eject phase stuck (active='+act+' for '+this.phT.toFixed(1)+'s)'));
+        if(typeof forceResumePlay==='function') forceResumePlay('stuck ejection cutscene');
+        this.phT=0;
+      }
+    } else if(G.phase==='meeting'){
+      const S=typeof SERVER!=='undefined'&&SERVER&&SERVER.state;
+      const mt=S&&S.meeting;
+      const stalled=mt&&(mt.discussion<=0&&mt.voting<=0);
+      if(stalled&&this.phT>6){
+        errLog('watchdog',new Error('meeting stalled with no live timer for '+this.phT.toFixed(1)+'s'));
+        if(typeof forceResumePlay==='function') forceResumePlay('stuck meeting');
+        this.phT=0;
+      }
     }
     // watchdog: sample once a second, only while a lit 3D view is expected
     if(G.phase!=='playing'&&G.phase!=='menu') return;

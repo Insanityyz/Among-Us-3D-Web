@@ -1803,12 +1803,18 @@ function mergeGeos(list){
   let o=0;
   for(const g of geos){
     const p=g.attributes.position,n=g.attributes.normal,u=g.attributes.uv,c=g.attributes.color,cnt=p.count;
+    // a source attribute with the wrong vertex count would read undefined -> NaN into the
+    // merged buffer and the batch disappears on real GPUs, so validate and sanitise instead
+    const uOk=!!u&&u.count===cnt, cOk=!!c&&c.count===cnt, nOk=!!n&&n.count===cnt;
+    if(u&&!uOk) console.error('[ship] geometry uv count mismatch: '+u.count+' vs '+cnt);
+    if(c&&!cOk) console.error('[ship] geometry color count mismatch: '+c.count+' vs '+cnt);
+    if(n&&!nOk) console.error('[ship] geometry normal count mismatch: '+n.count+' vs '+cnt);
     for(let i=0;i<cnt;i++){
       const k=(o+i)*3, k2=(o+i)*2;
       pos[k]=p.getX(i); pos[k+1]=p.getY(i); pos[k+2]=p.getZ(i);
-      if(n){ nor[k]=n.getX(i); nor[k+1]=n.getY(i); nor[k+2]=n.getZ(i); }
-      if(u){ uv[k2]=u.getX(i); uv[k2+1]=u.getY(i); }
-      if(c){ col[k]=c.getX(i); col[k+1]=c.getY(i); col[k+2]=c.getZ(i); } else { col[k]=col[k+1]=col[k+2]=1; }
+      if(nOk){ nor[k]=n.getX(i); nor[k+1]=n.getY(i); nor[k+2]=n.getZ(i); }
+      if(uOk){ uv[k2]=u.getX(i); uv[k2+1]=u.getY(i); }
+      if(cOk){ col[k]=c.getX(i); col[k+1]=c.getY(i); col[k+2]=c.getZ(i); } else { col[k]=col[k+1]=col[k+2]=1; }
     }
     o+=cnt;
   }
@@ -1942,9 +1948,9 @@ class Post{
       uniforms:{
         tScene:{value:null},tBloomA:{value:null},tBloomB:{value:null},
         res:{value:new THREE.Vector2()},time:{value:0},bloom:{value:0.85},
-        vig:{value:0.9},grain:{value:0.045},aberr:{value:0.0016},
+        vig:{value:0.62},grain:{value:0.045},aberr:{value:0.0016},
         flash:{value:0},tint:{value:new THREE.Vector3(1,1,1)},dark:{value:0},sat:{value:1.06},
-        exposure:{value:1.12},scan:{value:0},
+        exposure:{value:1.22},scan:{value:0},
       },
       vertexShader:VS_QUAD,
       fragmentShader:`
@@ -2392,9 +2398,9 @@ function buildShip(scene,M){
     const room=M.byId[f.room];
     const isCorr=!!room.corridor;
     const col=mixHex(0xfff1dc,f.accent,isCorr?0.1:0.22);
-    const pl=new THREE.PointLight(col,isCorr?7:13,f.size*(isCorr?1.5:1.9),1.85);
+    const pl=new THREE.PointLight(col,isCorr?12:22,f.size*(isCorr?1.5:1.9),1.85);
     pl.position.set(f.x,f.y,f.z);
-    pl.userData={base:isCorr?7:13,room:f.room,corr:isCorr};
+    pl.userData={base:isCorr?12:22,room:f.room,corr:isCorr};
     g.add(pl); SHIP.lights.normal.push(pl);
   }
   for(const r of M.rooms){
@@ -2859,41 +2865,45 @@ function makeCrewmate(opts){
   const visor=opts.visor===undefined?0x8AD5F0:opts.visor;
   const detail=opts.detail||20;
   const grp=new THREE.Group();
+  // Parts are modelled facing +Z (visor on +Z) but the game turns on the three.js
+  // convention (yaw 0 looks down -Z), so an inner group carries a PI offset: that way
+  // group.rotation.y=yaw faces the crewmate the way it walks instead of backwards.
+  const inner=new THREE.Group(); inner.rotation.y=Math.PI; grp.add(inner);
   const bodyMat=new THREE.MeshStandardMaterial({color,roughness:opts.rough||0.52,metalness:0.02,envMapIntensity:0.8});
   const darkMat=new THREE.MeshStandardMaterial({color:shade(color,0.74),roughness:0.6,metalness:0.03,envMapIntensity:0.7});
   const body=new THREE.Mesh(crewBodyGeo(detail),bodyMat);
-  grp.add(body);
+  inner.add(body);
   // backpack
   const bpShape=roundedRectShape(0.42,0.5,0.16);
   const bp=new THREE.Mesh(new THREE.ExtrudeGeometry(bpShape,{depth:0.2,bevelEnabled:true,bevelSize:0.05,bevelThickness:0.05,bevelSegments:3,curveSegments:8}),darkMat);
   bp.position.set(0,0.44,-0.30); bp.rotation.y=Math.PI;
-  grp.add(bp);
+  inner.add(bp);
   // visor
   const vShape=roundedRectShape(0.40,0.235,0.105);
   const vGeo=new THREE.ExtrudeGeometry(vShape,{depth:0.15,bevelEnabled:true,bevelSize:0.035,bevelThickness:0.035,bevelSegments:3,curveSegments:12});
   const vMat=new THREE.MeshStandardMaterial({color:visor,roughness:0.09,metalness:0.42,envMapIntensity:1.6});
   const vis=new THREE.Mesh(vGeo,vMat);
   vis.position.set(0.028,0.845,0.145);
-  grp.add(vis);
+  inner.add(vis);
   // visor rim
   const rimShape=roundedRectShape(0.45,0.285,0.12);
   const rim=new THREE.Mesh(new THREE.ExtrudeGeometry(rimShape,{depth:0.05,bevelEnabled:false,curveSegments:10}),
     new THREE.MeshStandardMaterial({color:shade(color,0.82),roughness:0.45,metalness:0.25}));
-  rim.position.set(0.028,0.845,0.135); grp.add(rim);
+  rim.position.set(0.028,0.845,0.135); inner.add(rim);
   // visor highlight
   const hl=new THREE.Mesh(planeGeo(0.16,0.055,1),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.5,toneMapped:false,fog:false,depthWrite:false}));
-  hl.position.set(-0.06,0.905,0.30); hl.rotation.z=-0.22; grp.add(hl);
+  hl.position.set(-0.06,0.905,0.30); hl.rotation.z=-0.22; inner.add(hl);
   // legs
   const legs=[];
   for(const sx of [-1,1]){
     const pivot=new THREE.Group(); pivot.position.set(sx*0.145,0.2,0.01);
     const leg=new THREE.Mesh(new THREE.CapsuleGeometry(0.105,0.12,5,12),darkMat);
     leg.position.y=-0.1; leg.scale.set(1,1,1.15);
-    pivot.add(leg); grp.add(pivot); legs.push(pivot);
+    pivot.add(leg); inner.add(pivot); legs.push(pivot);
   }
   // blob shadow
   const sh=new THREE.Mesh(planeGeo(1.0,1.0,1),MAT.blob.clone());
-  sh.rotation.x=-Math.PI/2; sh.position.y=0.012; grp.add(sh);
+  sh.rotation.x=-Math.PI/2; sh.position.y=0.012; inner.add(sh);
   grp.userData={bodyMat,darkMat,vMat,legs,shadow:sh,shadowMat:sh.material,visor:vis,hl};
   return grp;
 }
@@ -4494,10 +4504,38 @@ const TASKUI={
     AUDIO.use();
     let inst=null;
     try{ inst=builder?builder(body,Object.assign({},ctx,{kind})):null; }
-    catch(e){ console.error('panel error',kind,e); body.innerHTML='<div class="note">This console is offline.</div>'; }
+    catch(e){
+      console.error('panel error',kind,e);
+      if(typeof errLog==='function') errLog('panel:'+kind,e);
+      this.panelError(body,'This console hit a firmware error.',(e&&e.message)||String(e));
+      inst=null;
+    }
+    if(inst&&body.childElementCount===0){
+      if(typeof errLog==='function') errLog('panel-empty:'+kind,new Error('builder returned but produced no elements'));
+      this.panelError(body,'This console produced no interface.','empty panel');
+    }
     this.cur=inst||{};
     this.openAt=G.time;
     if(ctx&&ctx.onOpen) ctx.onOpen();
+  },
+  /* The task window is a light "clipboard", so the old pale failure note was invisible on
+     it and players just saw a white blank. Fail loud, in ink, with a way out. */
+  panelError(body,head,detail){
+    body.innerHTML='';
+    const card=document.createElement('div');
+    card.style.cssText='max-width:520px;text-align:center;color:#7d1a12;font-weight:800;font-size:14.5px;'+
+      'line-height:1.55;background:#f8dcd7;border:2px solid #c51111;border-radius:12px;padding:18px 22px';
+    const safe=String(detail||'').replace(/[<>&]/g,'').slice(0,180);
+    card.innerHTML='<div>'+head+'</div>'+
+      '<div style="font-weight:600;font-size:12px;opacity:.85;margin-top:6px">'+safe+'</div>'+
+      '<div style="font-size:11px;opacity:.7;margin-top:6px">If this repeats, press F9 and copy the report.</div>';
+    const btn=document.createElement('button');
+    btn.textContent='CLOSE';
+    btn.style.cssText='margin-top:12px;background:#c51111;color:#fff;font-weight:900;border-radius:8px;'+
+      'padding:8px 20px;letter-spacing:.12em;cursor:pointer';
+    btn.onclick=()=>this.close();
+    card.appendChild(btn);
+    body.appendChild(card);
   },
   close(silent){
     if(!this.cur) { document.getElementById('modal').classList.remove('on'); G.modalOpen=null; return; }
@@ -6459,8 +6497,28 @@ const Profile={
    Toggle with F9, or from the pause menu, or it opens itself if the watchdog
    decides the player is staring at nothing.
    ========================================================================== */
+/* Every caught runtime error lands here so a broken feature can never fail silently:
+   the diagnostics panel lists them and the copy-report button ships them to me. */
+const ERRLOG=[];
+function errLog(where,e){
+  const msg=where+': '+(e&&e.stack?String(e.stack).split('\n').slice(0,3).join(' | '):(e&&e.message||String(e)));
+  ERRLOG.push(msg); if(ERRLOG.length>60) ERRLOG.shift();
+  console.error('[game] '+msg);
+  if(typeof DIAG!=='undefined'&&DIAG.errToast) DIAG.errToast();
+}
+if(typeof window!=='undefined'){
+  window.addEventListener('error',ev=>{ errLog('window.onerror',ev.error||ev.message); });
+  window.addEventListener('unhandledrejection',ev=>{ errLog('unhandledrejection',ev.reason); });
+}
+
 const DIAG={
-  el:null, out:null, visible:false,
+  el:null, out:null, visible:false, lastPh:null, phT:0, errToastT:0,
+  errToast(){
+    if(typeof G==='undefined'||!G.time) return;
+    if(G.time-this.errToastT<8) return;
+    this.errToastT=G.time;
+    UI.toast('A script error was captured — press F9 for the report','bad',4200);
+  },
   acc:0, uiAcc:0, bad:0, hist:[], warned:false, autoSafe:false, autoBright:false,
 
   /* ---------- panel ---------- */
@@ -6638,6 +6696,10 @@ const DIAG={
     say('luma scene mean/max', m?m.scene.mean+' / '+m.scene.max:'not measured');
     say('luma final mean/max', m?m.final.mean+' / '+m.final.max:'not measured');
     if(this.hist.length) say('final luma history', this.hist.map(v=>v.toFixed(3)).join(' '));
+    if(typeof ERRLOG!=='undefined'&&ERRLOG.length){
+      say('captured errors', ERRLOG.length+' (last '+Math.min(6,ERRLOG.length)+' shown)');
+      ERRLOG.slice(-6).forEach((m,i)=>L.push('   '+(i+1)+'. '+m.slice(0,220)));
+    }
     if(this.autoSafe||this.autoBright) say('watchdog action', (this.autoSafe?'auto safe-mode ':'')+(this.autoBright?'auto fullbright':''));
     return L.join('\n');
   },
@@ -6682,6 +6744,27 @@ const DIAG={
       this.uiAcc+=dt;
       if(this.uiAcc>0.2){ this.uiAcc=0; this.measureNow(); this.refresh(); }
       return;
+    }
+    // ---- stuck-phase recovery: a phase that can no longer advance freezes the whole
+    // match (the server only ticks while playing/meeting), so detect and heal it ----
+    if(G.phase!==this.lastPh){ this.lastPh=G.phase; this.phT=0; }
+    this.phT+=dt;
+    if(G.phase==='eject'){
+      const act=typeof EJECT!=='undefined'&&!!EJECT.active;
+      if((!act&&this.phT>6)||(act&&this.phT>45)){
+        errLog('watchdog',new Error('eject phase stuck (active='+act+' for '+this.phT.toFixed(1)+'s)'));
+        if(typeof forceResumePlay==='function') forceResumePlay('stuck ejection cutscene');
+        this.phT=0;
+      }
+    } else if(G.phase==='meeting'){
+      const S=typeof SERVER!=='undefined'&&SERVER&&SERVER.state;
+      const mt=S&&S.meeting;
+      const stalled=mt&&(mt.discussion<=0&&mt.voting<=0);
+      if(stalled&&this.phT>6){
+        errLog('watchdog',new Error('meeting stalled with no live timer for '+this.phT.toFixed(1)+'s'));
+        if(typeof forceResumePlay==='function') forceResumePlay('stuck meeting');
+        this.phT=0;
+      }
     }
     // watchdog: sample once a second, only while a lit 3D view is expected
     if(G.phase!=='playing'&&G.phase!=='menu') return;
@@ -6904,6 +6987,22 @@ const Game={
   },
 };
 /* called by EJECT.end() — replay anything the server sent during the cutscene */
+/* Last-resort recovery: put the client back into a playable state no matter what broke.
+   The server keeps its own state and re-synchronises us with its next event. */
+function forceResumePlay(reason){
+  try{
+    if(typeof EJECT!=='undefined'&&EJECT.active){ try{ EJECT.active=false; }catch(e){} }
+    G.pendingResume=null; G.pendingOver=null;
+    if(SHIP.meshes){ SHIP.meshes.ceil.visible=true; SHIP.meshes.hull.visible=true; }
+    if(typeof MEET!=='undefined'&&MEET.active){ try{ MEET.finish(); }catch(e){} }
+    const mEl=document.getElementById('meeting'); if(mEl) mEl.classList.add('hidden');
+    const eEl=document.getElementById('eject'); if(eEl) eEl.classList.add('hidden');
+    G.phase='playing';
+    CAM.mode='player';
+    UI.toast('Recovered from: '+reason,null,3200);
+    if(!G.isTouch&&G.me&&G.me.alive&&typeof requestLock==='function') requestLock();
+  }catch(e){ errLog('forceResumePlay',e); }
+}
 function afterEject(){
   if(G.pendingOver){ const e=G.pendingOver; G.pendingOver=null; G.pendingResume=null;
     Game.endMatch(); setTimeout(()=>UI.showResult(e),260); return; }
@@ -7080,6 +7179,11 @@ function panelForTask(task){
    Client-side reaction to server events
    ========================================================================== */
 NET.on(function(evt){
+  // a throwing event handler used to strand the client mid-meeting with no feedback
+  try{ onServerEvent(evt); }
+  catch(e){ errLog('net:'+(evt&&evt.t),e); }
+});
+function onServerEvent(evt){
   const S=SERVER?SERVER.state:null;
   switch(evt.t){
     case 'start':{
@@ -7180,7 +7284,11 @@ NET.on(function(evt){
       G.phase='eject';
       MEET.active=false;
       document.getElementById('meeting').classList.add('hidden');
-      EJECT.start(evt);
+      try{ EJECT.start(evt); }
+      catch(e){
+        errLog('EJECT.start',e);
+        forceResumePlay('the ejection cutscene failed to start');
+      }
       break;
     }
     case 'resume':{
@@ -7209,7 +7317,7 @@ NET.on(function(evt){
       break;
     }
   }
-});
+}
 function syncBodies(list){
   const have=new Set(CLIENT.bodies.map(b=>b.id));
   const want=new Set(list.map(b=>b.id));
@@ -7258,8 +7366,8 @@ function updateLighting(dt){
   const boost=RENDER.lightBoost||1;   // diagnostics / watchdog can crank this to prove lighting is the problem
   for(const l of SHIP.lights.normal) l.intensity=lerp(l.intensity,l.userData.base*(G.client.quality==='low'?0.8:1)*targetN*boost,k);
   for(const l of SHIP.lights.emerg) l.intensity=lerp(l.intensity,(lightsOut?2.6:0)*targetE*boost,k);
-  SHIP.lights.amb.intensity=lerp(SHIP.lights.amb.intensity,(lightsOut?0.12:(G.client.quality==='low'?0.85:0.5))*boost,k);
-  SHIP.lights.hemi.intensity=lerp(SHIP.lights.hemi.intensity,(lightsOut?0.14:0.42)*boost,k);
+  SHIP.lights.amb.intensity=lerp(SHIP.lights.amb.intensity,(lightsOut?0.12:(G.client.quality==='low'?1.05:0.78))*boost,k);
+  SHIP.lights.hemi.intensity=lerp(SHIP.lights.hemi.intensity,(lightsOut?0.14:0.6)*boost,k);
   // fog = vision
   const baseFog=0.0185;
   const fog=lightsOut?(me&&me.role==='impostor'?0.05:0.115):baseFog/clamp(vision,0.25,3);
@@ -7268,7 +7376,7 @@ function updateLighting(dt){
   const u=RENDER.post.compMat.uniforms;
   const dark=lightsOut?(me&&me.role==='impostor'?0.16:(me&&me.alive?0.52:0.2)):0;
   u.dark.value=lerp(u.dark.value,dark,1-Math.pow(0.02,dt));
-  u.vig.value=lerp(u.vig.value,lightsOut?1.5:0.9,1-Math.pow(0.05,dt));
+  u.vig.value=lerp(u.vig.value,lightsOut?1.2:0.62,1-Math.pow(0.05,dt));
   u.sat.value=lerp(u.sat.value,lightsOut?0.8:1.06,1-Math.pow(0.05,dt));
   const tint=lightsOut?[0.86,0.55,0.5]:[1,1,1];
   u.tint.value.set(lerp(u.tint.value.x,tint[0],k),lerp(u.tint.value.y,tint[1],k),lerp(u.tint.value.z,tint[2],k));
@@ -7409,7 +7517,7 @@ function buildMenuCrew(){
     const a=(i/n)*TAU+0.4;
     const c=makeCrewmate({color:COLORS[(i*3+2)%COLORS.length].hex,visor:VISORS[i%VISORS.length].hex,detail:22});
     c.position.set(cx+Math.cos(a)*1.9,0,cz+Math.sin(a)*1.9);
-    c.rotation.y=-a+Math.PI;
+    c.rotation.y=Math.PI/2-a;   // face the table (model carries its own PI offset now)
     c.userData.baseA=a; c.userData.i=i;
     grp.add(c);
   }
@@ -7561,6 +7669,12 @@ function updateAmbience(dt){
 /* ---------- main frame ---------- */
 function frame(now){
   requestAnimationFrame(frame);
+  // the render loop is the heartbeat of the whole game: an exception anywhere must not be
+  // able to stop it, or the match freezes with no explanation. Capture and carry on.
+  try{ frameBody(now); }
+  catch(e){ errLog('frame',e); }
+}
+function frameBody(now){
   if(!LOOP.ready) return;
   let dt=(now-LOOP.last)/1000;
   LOOP.last=now;

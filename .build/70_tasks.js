@@ -22,10 +22,38 @@ const TASKUI={
     AUDIO.use();
     let inst=null;
     try{ inst=builder?builder(body,Object.assign({},ctx,{kind})):null; }
-    catch(e){ console.error('panel error',kind,e); body.innerHTML='<div class="note">This console is offline.</div>'; }
+    catch(e){
+      console.error('panel error',kind,e);
+      if(typeof errLog==='function') errLog('panel:'+kind,e);
+      this.panelError(body,'This console hit a firmware error.',(e&&e.message)||String(e));
+      inst=null;
+    }
+    if(inst&&body.childElementCount===0){
+      if(typeof errLog==='function') errLog('panel-empty:'+kind,new Error('builder returned but produced no elements'));
+      this.panelError(body,'This console produced no interface.','empty panel');
+    }
     this.cur=inst||{};
     this.openAt=G.time;
     if(ctx&&ctx.onOpen) ctx.onOpen();
+  },
+  /* The task window is a light "clipboard", so the old pale failure note was invisible on
+     it and players just saw a white blank. Fail loud, in ink, with a way out. */
+  panelError(body,head,detail){
+    body.innerHTML='';
+    const card=document.createElement('div');
+    card.style.cssText='max-width:520px;text-align:center;color:#7d1a12;font-weight:800;font-size:14.5px;'+
+      'line-height:1.55;background:#f8dcd7;border:2px solid #c51111;border-radius:12px;padding:18px 22px';
+    const safe=String(detail||'').replace(/[<>&]/g,'').slice(0,180);
+    card.innerHTML='<div>'+head+'</div>'+
+      '<div style="font-weight:600;font-size:12px;opacity:.85;margin-top:6px">'+safe+'</div>'+
+      '<div style="font-size:11px;opacity:.7;margin-top:6px">If this repeats, press F9 and copy the report.</div>';
+    const btn=document.createElement('button');
+    btn.textContent='CLOSE';
+    btn.style.cssText='margin-top:12px;background:#c51111;color:#fff;font-weight:900;border-radius:8px;'+
+      'padding:8px 20px;letter-spacing:.12em;cursor:pointer';
+    btn.onclick=()=>this.close();
+    card.appendChild(btn);
+    body.appendChild(card);
   },
   close(silent){
     if(!this.cur) { document.getElementById('modal').classList.remove('on'); G.modalOpen=null; return; }

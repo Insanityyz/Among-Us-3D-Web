@@ -26,7 +26,7 @@ function buildMenuCrew(){
     const a=(i/n)*TAU+0.4;
     const c=makeCrewmate({color:COLORS[(i*3+2)%COLORS.length].hex,visor:VISORS[i%VISORS.length].hex,detail:22});
     c.position.set(cx+Math.cos(a)*1.9,0,cz+Math.sin(a)*1.9);
-    c.rotation.y=-a+Math.PI;
+    c.rotation.y=Math.PI/2-a;   // face the table (model carries its own PI offset now)
     c.userData.baseA=a; c.userData.i=i;
     grp.add(c);
   }
@@ -178,6 +178,12 @@ function updateAmbience(dt){
 /* ---------- main frame ---------- */
 function frame(now){
   requestAnimationFrame(frame);
+  // the render loop is the heartbeat of the whole game: an exception anywhere must not be
+  // able to stop it, or the match freezes with no explanation. Capture and carry on.
+  try{ frameBody(now); }
+  catch(e){ errLog('frame',e); }
+}
+function frameBody(now){
   if(!LOOP.ready) return;
   let dt=(now-LOOP.last)/1000;
   LOOP.last=now;

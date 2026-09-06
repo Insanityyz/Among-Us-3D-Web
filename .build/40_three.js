@@ -442,12 +442,18 @@ function mergeGeos(list){
   let o=0;
   for(const g of geos){
     const p=g.attributes.position,n=g.attributes.normal,u=g.attributes.uv,c=g.attributes.color,cnt=p.count;
+    // a source attribute with the wrong vertex count would read undefined -> NaN into the
+    // merged buffer and the batch disappears on real GPUs, so validate and sanitise instead
+    const uOk=!!u&&u.count===cnt, cOk=!!c&&c.count===cnt, nOk=!!n&&n.count===cnt;
+    if(u&&!uOk) console.error('[ship] geometry uv count mismatch: '+u.count+' vs '+cnt);
+    if(c&&!cOk) console.error('[ship] geometry color count mismatch: '+c.count+' vs '+cnt);
+    if(n&&!nOk) console.error('[ship] geometry normal count mismatch: '+n.count+' vs '+cnt);
     for(let i=0;i<cnt;i++){
       const k=(o+i)*3, k2=(o+i)*2;
       pos[k]=p.getX(i); pos[k+1]=p.getY(i); pos[k+2]=p.getZ(i);
-      if(n){ nor[k]=n.getX(i); nor[k+1]=n.getY(i); nor[k+2]=n.getZ(i); }
-      if(u){ uv[k2]=u.getX(i); uv[k2+1]=u.getY(i); }
-      if(c){ col[k]=c.getX(i); col[k+1]=c.getY(i); col[k+2]=c.getZ(i); } else { col[k]=col[k+1]=col[k+2]=1; }
+      if(nOk){ nor[k]=n.getX(i); nor[k+1]=n.getY(i); nor[k+2]=n.getZ(i); }
+      if(uOk){ uv[k2]=u.getX(i); uv[k2+1]=u.getY(i); }
+      if(cOk){ col[k]=c.getX(i); col[k+1]=c.getY(i); col[k+2]=c.getZ(i); } else { col[k]=col[k+1]=col[k+2]=1; }
     }
     o+=cnt;
   }
@@ -581,9 +587,9 @@ class Post{
       uniforms:{
         tScene:{value:null},tBloomA:{value:null},tBloomB:{value:null},
         res:{value:new THREE.Vector2()},time:{value:0},bloom:{value:0.85},
-        vig:{value:0.9},grain:{value:0.045},aberr:{value:0.0016},
+        vig:{value:0.62},grain:{value:0.045},aberr:{value:0.0016},
         flash:{value:0},tint:{value:new THREE.Vector3(1,1,1)},dark:{value:0},sat:{value:1.06},
-        exposure:{value:1.12},scan:{value:0},
+        exposure:{value:1.22},scan:{value:0},
       },
       vertexShader:VS_QUAD,
       fragmentShader:`

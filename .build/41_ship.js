@@ -206,9 +206,9 @@ function buildShip(scene,M){
     const room=M.byId[f.room];
     const isCorr=!!room.corridor;
     const col=mixHex(0xfff1dc,f.accent,isCorr?0.1:0.22);
-    const pl=new THREE.PointLight(col,isCorr?7:13,f.size*(isCorr?1.5:1.9),1.85);
+    const pl=new THREE.PointLight(col,isCorr?12:22,f.size*(isCorr?1.5:1.9),1.85);
     pl.position.set(f.x,f.y,f.z);
-    pl.userData={base:isCorr?7:13,room:f.room,corr:isCorr};
+    pl.userData={base:isCorr?12:22,room:f.room,corr:isCorr};
     g.add(pl); SHIP.lights.normal.push(pl);
   }
   for(const r of M.rooms){
@@ -673,41 +673,45 @@ function makeCrewmate(opts){
   const visor=opts.visor===undefined?0x8AD5F0:opts.visor;
   const detail=opts.detail||20;
   const grp=new THREE.Group();
+  // Parts are modelled facing +Z (visor on +Z) but the game turns on the three.js
+  // convention (yaw 0 looks down -Z), so an inner group carries a PI offset: that way
+  // group.rotation.y=yaw faces the crewmate the way it walks instead of backwards.
+  const inner=new THREE.Group(); inner.rotation.y=Math.PI; grp.add(inner);
   const bodyMat=new THREE.MeshStandardMaterial({color,roughness:opts.rough||0.52,metalness:0.02,envMapIntensity:0.8});
   const darkMat=new THREE.MeshStandardMaterial({color:shade(color,0.74),roughness:0.6,metalness:0.03,envMapIntensity:0.7});
   const body=new THREE.Mesh(crewBodyGeo(detail),bodyMat);
-  grp.add(body);
+  inner.add(body);
   // backpack
   const bpShape=roundedRectShape(0.42,0.5,0.16);
   const bp=new THREE.Mesh(new THREE.ExtrudeGeometry(bpShape,{depth:0.2,bevelEnabled:true,bevelSize:0.05,bevelThickness:0.05,bevelSegments:3,curveSegments:8}),darkMat);
   bp.position.set(0,0.44,-0.30); bp.rotation.y=Math.PI;
-  grp.add(bp);
+  inner.add(bp);
   // visor
   const vShape=roundedRectShape(0.40,0.235,0.105);
   const vGeo=new THREE.ExtrudeGeometry(vShape,{depth:0.15,bevelEnabled:true,bevelSize:0.035,bevelThickness:0.035,bevelSegments:3,curveSegments:12});
   const vMat=new THREE.MeshStandardMaterial({color:visor,roughness:0.09,metalness:0.42,envMapIntensity:1.6});
   const vis=new THREE.Mesh(vGeo,vMat);
   vis.position.set(0.028,0.845,0.145);
-  grp.add(vis);
+  inner.add(vis);
   // visor rim
   const rimShape=roundedRectShape(0.45,0.285,0.12);
   const rim=new THREE.Mesh(new THREE.ExtrudeGeometry(rimShape,{depth:0.05,bevelEnabled:false,curveSegments:10}),
     new THREE.MeshStandardMaterial({color:shade(color,0.82),roughness:0.45,metalness:0.25}));
-  rim.position.set(0.028,0.845,0.135); grp.add(rim);
+  rim.position.set(0.028,0.845,0.135); inner.add(rim);
   // visor highlight
   const hl=new THREE.Mesh(planeGeo(0.16,0.055,1),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.5,toneMapped:false,fog:false,depthWrite:false}));
-  hl.position.set(-0.06,0.905,0.30); hl.rotation.z=-0.22; grp.add(hl);
+  hl.position.set(-0.06,0.905,0.30); hl.rotation.z=-0.22; inner.add(hl);
   // legs
   const legs=[];
   for(const sx of [-1,1]){
     const pivot=new THREE.Group(); pivot.position.set(sx*0.145,0.2,0.01);
     const leg=new THREE.Mesh(new THREE.CapsuleGeometry(0.105,0.12,5,12),darkMat);
     leg.position.y=-0.1; leg.scale.set(1,1,1.15);
-    pivot.add(leg); grp.add(pivot); legs.push(pivot);
+    pivot.add(leg); inner.add(pivot); legs.push(pivot);
   }
   // blob shadow
   const sh=new THREE.Mesh(planeGeo(1.0,1.0,1),MAT.blob.clone());
-  sh.rotation.x=-Math.PI/2; sh.position.y=0.012; grp.add(sh);
+  sh.rotation.x=-Math.PI/2; sh.position.y=0.012; inner.add(sh);
   grp.userData={bodyMat,darkMat,vMat,legs,shadow:sh,shadowMat:sh.material,visor:vis,hl};
   return grp;
 }

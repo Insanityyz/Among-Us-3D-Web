@@ -185,6 +185,22 @@ const Game={
   },
 };
 /* called by EJECT.end() — replay anything the server sent during the cutscene */
+/* Last-resort recovery: put the client back into a playable state no matter what broke.
+   The server keeps its own state and re-synchronises us with its next event. */
+function forceResumePlay(reason){
+  try{
+    if(typeof EJECT!=='undefined'&&EJECT.active){ try{ EJECT.active=false; }catch(e){} }
+    G.pendingResume=null; G.pendingOver=null;
+    if(SHIP.meshes){ SHIP.meshes.ceil.visible=true; SHIP.meshes.hull.visible=true; }
+    if(typeof MEET!=='undefined'&&MEET.active){ try{ MEET.finish(); }catch(e){} }
+    const mEl=document.getElementById('meeting'); if(mEl) mEl.classList.add('hidden');
+    const eEl=document.getElementById('eject'); if(eEl) eEl.classList.add('hidden');
+    G.phase='playing';
+    CAM.mode='player';
+    UI.toast('Recovered from: '+reason,null,3200);
+    if(!G.isTouch&&G.me&&G.me.alive&&typeof requestLock==='function') requestLock();
+  }catch(e){ errLog('forceResumePlay',e); }
+}
 function afterEject(){
   if(G.pendingOver){ const e=G.pendingOver; G.pendingOver=null; G.pendingResume=null;
     Game.endMatch(); setTimeout(()=>UI.showResult(e),260); return; }
@@ -361,6 +377,11 @@ function panelForTask(task){
    Client-side reaction to server events
    ========================================================================== */
 NET.on(function(evt){
+  // a throwing event handler used to strand the client mid-meeting with no feedback
+  try{ onServerEvent(evt); }
+  catch(e){ errLog('net:'+(evt&&evt.t),e); }
+});
+function onServerEvent(evt){
   const S=SERVER?SERVER.state:null;
   switch(evt.t){
     case 'start':{
@@ -461,7 +482,11 @@ NET.on(function(evt){
       G.phase='eject';
       MEET.active=false;
       document.getElementById('meeting').classList.add('hidden');
-      EJECT.start(evt);
+      try{ EJECT.start(evt); }
+      catch(e){
+        errLog('EJECT.start',e);
+        forceResumePlay('the ejection cutscene failed to start');
+      }
       break;
     }
     case 'resume':{
@@ -490,7 +515,7 @@ NET.on(function(evt){
       break;
     }
   }
-});
+}
 function syncBodies(list){
   const have=new Set(CLIENT.bodies.map(b=>b.id));
   const want=new Set(list.map(b=>b.id));
@@ -539,8 +564,8 @@ function updateLighting(dt){
   const boost=RENDER.lightBoost||1;   // diagnostics / watchdog can crank this to prove lighting is the problem
   for(const l of SHIP.lights.normal) l.intensity=lerp(l.intensity,l.userData.base*(G.client.quality==='low'?0.8:1)*targetN*boost,k);
   for(const l of SHIP.lights.emerg) l.intensity=lerp(l.intensity,(lightsOut?2.6:0)*targetE*boost,k);
-  SHIP.lights.amb.intensity=lerp(SHIP.lights.amb.intensity,(lightsOut?0.12:(G.client.quality==='low'?0.85:0.5))*boost,k);
-  SHIP.lights.hemi.intensity=lerp(SHIP.lights.hemi.intensity,(lightsOut?0.14:0.42)*boost,k);
+  SHIP.lights.amb.intensity=lerp(SHIP.lights.amb.intensity,(lightsOut?0.12:(G.client.quality==='low'?1.05:0.78))*boost,k);
+  SHIP.lights.hemi.intensity=lerp(SHIP.lights.hemi.intensity,(lightsOut?0.14:0.6)*boost,k);
   // fog = vision
   const baseFog=0.0185;
   const fog=lightsOut?(me&&me.role==='impostor'?0.05:0.115):baseFog/clamp(vision,0.25,3);
@@ -549,7 +574,7 @@ function updateLighting(dt){
   const u=RENDER.post.compMat.uniforms;
   const dark=lightsOut?(me&&me.role==='impostor'?0.16:(me&&me.alive?0.52:0.2)):0;
   u.dark.value=lerp(u.dark.value,dark,1-Math.pow(0.02,dt));
-  u.vig.value=lerp(u.vig.value,lightsOut?1.5:0.9,1-Math.pow(0.05,dt));
+  u.vig.value=lerp(u.vig.value,lightsOut?1.2:0.62,1-Math.pow(0.05,dt));
   u.sat.value=lerp(u.sat.value,lightsOut?0.8:1.06,1-Math.pow(0.05,dt));
   const tint=lightsOut?[0.86,0.55,0.5]:[1,1,1];
   u.tint.value.set(lerp(u.tint.value.x,tint[0],k),lerp(u.tint.value.y,tint[1],k),lerp(u.tint.value.z,tint[2],k));

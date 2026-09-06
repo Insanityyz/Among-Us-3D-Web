@@ -31,7 +31,7 @@ process.on('unhandledRejection',e=>fail('unhandledRejection',e));
 
 let src=PARTS.map(f=>fs.readFileSync(path.join(DIR,f),'utf8')).join('\n');
 src=src.replace("THREE=await loadThree((p,m)=>setBoot(p,m));","THREE=globalThis.__THREE;");
-src+="\nglobalThis.__T={G,Game,Actions,CLIENT,UI,MEET,EJECT,TASKUI,SCREENS,VISUAL,FX,AUDIO,SHIP,RENDER,NET,SAB,LOOP,Profile,CAM,PANELS,DIAG,setSafeMode,openStation,MAP,buildMap,updateCameraDirector,pollActions,frame,get SERVER(){return SERVER;},set SERVER(v){SERVER=v;}};\n";
+src+="\nglobalThis.__T={G,Game,Actions,CLIENT,UI,MEET,EJECT,TASKUI,SCREENS,VISUAL,FX,AUDIO,SHIP,RENDER,NET,SAB,LOOP,Profile,CAM,PANELS,DIAG,setSafeMode,ERRLOG,openStation,MAP,buildMap,updateCameraDirector,pollActions,frame,get SERVER(){return SERVER;},set SERVER(v){SERVER=v;}};\n";
 const tmp=path.join(os.tmpdir(),'smoke_'+Date.now()+'.mjs');
 fs.writeFileSync(tmp,src,'utf8');
 
@@ -186,6 +186,35 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
     if(T.RENDER.safeMode) throw new Error('safe mode left engaged');
     if((T.RENDER.lightBoost||1)!==1) throw new Error('lightBoost left engaged');
     if(T.RENDER.fogOff) throw new Error('fogOff left engaged');
+  });
+  await step('merged geometry integrity',()=>{
+    const bad=[];
+    // validates the merged batches (real typed arrays even under the stub) and any other
+    // geometry that carries attributes; stub-fake geometries without arrays are skipped
+    const chk=(name,g)=>{
+      if(!g||!g.attributes||!g.attributes.position||!g.attributes.position.array) return;
+      const n=g.attributes.position.count;
+      if(!n){ bad.push(name+': empty'); return; }
+      for(const k of ['position','normal','uv','color']){
+        const a=g.attributes[k];
+        if(!a||!a.array) continue;
+        if(a.count!==n){ bad.push(name+'.'+k+' count '+a.count+'!='+n); continue; }
+        const arr=a.array, stride=Math.max(1,(arr.length/97)|0);
+        for(let i=0;i<arr.length;i+=stride){
+          if(!isFinite(arr[i])){ bad.push(name+'.'+k+' has non-finite data'); break; }
+        }
+      }
+    };
+    for(const k of Object.keys(T.SHIP.meshes)) chk('ship.'+k,T.SHIP.meshes[k].geometry);
+    let meshes=0,checked=0;
+    T.SHIP.group.traverse(o=>{
+      if(o.isMesh&&o.geometry&&o.geometry.attributes&&o.geometry.attributes.position&&o.geometry.attributes.position.array){
+        meshes++; chk('mesh#'+meshes,o.geometry); checked++;
+      }
+    });
+    if(bad.length) throw new Error(bad.slice(0,8).join('; '));
+    if(!checked) throw new Error('no geometry with real arrays found - check is vacuous');
+    console.log('        '+checked+' attributed meshes verified (attribute parity + finite data)');
   });
   await step('per-room door sabotage',()=>{
     const S=T.SERVER.state;
@@ -413,6 +442,9 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   await step('result visible',()=>{ if(documentStub.getElementById('result').classList.contains('hidden'))throw new Error('result hidden'); });
 
   console.log('\nframes rendered: '+frames);
+  await step('no captured runtime errors',()=>{
+    if(T.ERRLOG&&T.ERRLOG.length) throw new Error('ERRLOG: '+T.ERRLOG.slice(0,4).join(' || '));
+  });
   if(errors.length){
     console.log('\n=== '+errors.length+' ERROR(S) ===');
     errors.forEach((e,i)=>console.log((i+1)+'. '+e));
