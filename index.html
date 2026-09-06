@@ -739,6 +739,8 @@
 
     camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.1, 200);
     camera.position.set(SPAWN.x, 1.62, SPAWN.z);
+    camera.up.set(0, 1, 0);
+    camera.rotation.order = 'YXZ';
 
     // soft image-based lighting for that glossy "Among Us 3D" look
     try {
@@ -1330,8 +1332,10 @@
     // head bob
     p.bob += dt * (p.moving ? 9 : 4);
     camera.position.set(p.pos.x, 1.62 + Math.sin(p.bob) * (p.moving ? 0.045 : 0.015), p.pos.z);
-    camera.rotation.order = 'YXZ';
-    camera.rotation.y = p.yaw; camera.rotation.x = p.pitch;
+    // IMPORTANT: set all three axes (including z=0). Assigning only .y and .x here
+    // after the menu's camera.lookAt() leaves a stale Euler .z (up to ~PI) that
+    // flips the camera upside-down depending on the orbit angle.
+    camera.rotation.set(p.pitch, p.yaw, 0);
     p.lastRoom = roomAt(p.pos.x, p.pos.z) || p.lastRoom;
   }
 
