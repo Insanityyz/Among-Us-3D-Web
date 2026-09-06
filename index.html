@@ -878,7 +878,7 @@
       m.makeTranslation(wx(fc.c), -0.08, wz(fc.r));
       floor.setMatrixAt(i, m);
       const base = FLOOR[fc.r][fc.c];
-      const tint = base === '.' ? 0x7d8a9c : new THREE.Color(ROOM_ACCENT[base]).lerp(new THREE.Color(0x9aa6b6), 0.82);
+      const tint = base === '.' ? new THREE.Color(0x7d8a9c) : new THREE.Color(ROOM_ACCENT[base]).lerp(new THREE.Color(0x9aa6b6), 0.82);
       floor.setColorAt(i, tint);
     });
     floor.instanceMatrix.needsUpdate = true;
