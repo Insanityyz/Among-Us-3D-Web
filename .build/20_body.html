@@ -1,0 +1,280 @@
+<body>
+<canvas id="gl"></canvas>
+<div class="vig"></div>
+<div id="dmg"></div>
+<div id="blackout"></div>
+
+<!-- ============ SVG icon defs ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-use" viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 1 5 5v6.2l3.1-2.3a2.4 2.4 0 0 1 3.2 3.5l-6.2 6.6A6 6 0 0 1 12.7 23H8a6 6 0 0 1-6-6v-4a2 2 0 0 1 2-2h1V7a2 2 0 0 1 4 0v4h1V4a2 2 0 0 1 4 0v7h1V5a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="i-report" viewBox="0 0 24 24"><path d="M12 2 2 21h20L12 2zm0 5.6 6.3 11.4H5.7L12 7.6zM11 11v4h2v-4h-2zm0 5v2h2v-2h-2z"/></symbol>
+  <symbol id="i-kill" viewBox="0 0 24 24"><path d="M3 17.6 15.4 5.2l3.4 3.4L6.4 21H3v-3.4zM17.6 3 21 6.4 19 8.4 15.6 5 17.6 3zM9.6 21c0-1.7 1.3-3 3-3h8.4v3H9.6z"/></symbol>
+  <symbol id="i-vent" viewBox="0 0 24 24"><path d="M3 4h18v3H3V4zm0 5h18v3H3V9zm0 5h18v3H3v-3zm0 5h18v3H3v-3z"/></symbol>
+  <symbol id="i-sab" viewBox="0 0 24 24"><path d="M12 2 1 21h22L12 2zm1 13h-2v2h2v-2zm0-7h-2v5h2V8zM6.5 3.2 4.3 1 1 4.3l2.2 2.2 3.3-3.3zM23 4.3 19.7 1l-2.2 2.2 3.3 3.3L23 4.3z"/></symbol>
+  <symbol id="i-emerg" viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 0-7 7v5H3v3h18v-3h-2v-5a7 7 0 0 0-7-7zm0 2.4A4.6 4.6 0 0 1 16.6 10v5H7.4v-5A4.6 4.6 0 0 1 12 5.4z"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 2 3 4.5V22l6-2.5 6 2.5 6-2.5V2l-6 2.5L9 2zm0 2.6 6 2.5v12l-6-2.5v-12z"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 3h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-8l-6 5v-5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><path d="M12 8.2A3.8 3.8 0 1 0 12 15.8 3.8 3.8 0 0 0 12 8.2zm9.2 5.1 2 1.6-2 3.4-2.4-.8a7.6 7.6 0 0 1-1.7 1l-.4 2.5h-4l-.4-2.5a7.6 7.6 0 0 1-1.7-1l-2.4.8-2-3.4 2-1.6a7.9 7.9 0 0 1 0-2L4.2 9.7l2-3.4 2.4.8a7.6 7.6 0 0 1 1.7-1L10.7 3.6h4l.4 2.5c.6.3 1.2.6 1.7 1l2.4-.8 2 3.4-2 1.6a7.9 7.9 0 0 1 0 2z"/></symbol>
+  <symbol id="i-task" viewBox="0 0 24 24"><path d="M4 3h11l5 5v13H4V3zm2 9 3 3 6-6 1.6 1.6L9 18.6 4.4 14 6 12.4z"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12 19 6.4 17.6 5 12 10.6 6.4 5z"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M12 5C6.5 5 2.2 9 1 12c1.2 3 5.5 7 11 7s9.8-4 11-7c-1.2-3-5.5-7-11-7zm0 3.4A3.6 3.6 0 1 1 12 15.6 3.6 3.6 0 0 1 12 8.4z"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24"><path d="M12 3a5 5 0 0 1 5 5v5.5l2 6.5H5l2-6.5V8a5 5 0 0 1 5-5z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
+  <symbol id="i-o2" viewBox="0 0 24 24"><path d="M7 3a5 5 0 0 0-5 5v8a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5V8a5 5 0 0 0-5-5H7zm5 4.2c2.6 0 4.6 2.1 4.6 4.8S14.6 16.8 12 16.8 7.4 14.7 7.4 12 9.4 7.2 12 7.2z"/></symbol>
+  <symbol id="i-door" viewBox="0 0 24 24"><path d="M5 2h14v20H5V2zm10 9h2v2h-2v-2z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M6 3l15 9-15 9V3z"/></symbol>
+  <symbol id="i-net" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zm0 2.2c1.3 1.3 2.2 3.3 2.6 5.6H9.4c.4-2.3 1.3-4.3 2.6-5.6zM5.6 10.8h1.7a20 20 0 0 0 0 2.4H5.6a7 7 0 0 1 0-2.4zm1.9 0h3.1a20 20 0 0 0 0 2.4H7.5a17 17 0 0 1 0-2.4zm4.9 0h3.2a20 20 0 0 1 0 2.4h-3.2a20 20 0 0 0 0-2.4zm5 0h1.7a7 7 0 0 1 0 2.4h-1.7a20 20 0 0 0 0-2.4zM8.2 6.6A11 11 0 0 0 7.6 9H5.9a7 7 0 0 1 2.3-2.4zm7.6 0A7 7 0 0 1 18.1 9h-1.7a11 11 0 0 0-.6-2.4zM5.9 15h1.7c.15.86.36 1.66.62 2.4A7 7 0 0 1 5.9 15zm3.5 0h5.2c-.4 2.3-1.3 4.3-2.6 5.6-1.3-1.3-2.2-3.3-2.6-5.6zm7 0h1.7a7 7 0 0 1-2.3 2.4c.26-.74.47-1.54.62-2.4z"/></symbol>
+</defs></svg>
+
+<!-- ============ BOOT ============ -->
+<div class="screen solid" id="boot">
+  <div class="spinner"></div>
+  <div class="logo" style="font-size:0">
+    <span class="l1" style="font-size:clamp(26px,4.6vw,58px)">Loading</span>
+  </div>
+  <div class="bar"><i id="bootFill"></i></div>
+  <div class="msg" id="bootMsg">Booting ship systems…</div>
+</div>
+
+<!-- ============ MAIN MENU ============ -->
+<div class="screen" id="menu">
+  <div class="top">
+    <div class="logo">
+      <span class="l1">Among&nbsp;Us</span>
+      <span class="l2">3D</span>
+      <span class="l3">Web Edition &mdash; Desktop &amp; Touch</span>
+    </div>
+    <div class="rowb" style="gap:8px">
+      <button class="iconbtn pe" id="btnSettingsMenu" title="Settings"><svg><use href="#i-gear"/></svg></button>
+      <button class="iconbtn pe" id="btnHelp" title="How to play"><svg><use href="#i-task"/></svg></button>
+    </div>
+  </div>
+
+  <div class="mid">
+    <div class="mcard" id="menuCol">
+      <h3>Crewmate</h3>
+      <div class="namerow">
+        <input id="nameInput" maxlength="12" placeholder="Enter name" spellcheck="false" autocomplete="off">
+        <button class="btn sm ghost" id="btnRandomize" title="Randomize">&#8635;</button>
+      </div>
+      <div class="smallcaps" style="margin-bottom:8px">Colour</div>
+      <div class="swatches" id="swatches"></div>
+      <div class="rowb mt" style="gap:8px">
+        <div class="smallcaps">Visor</div>
+        <div class="chips" id="visorChips"></div>
+      </div>
+      <div class="rowb mt" style="gap:8px">
+        <div class="smallcaps">View</div>
+        <div class="chips" id="viewChips"></div>
+      </div>
+    </div>
+
+    <div id="menuBtns">
+      <button class="btn red big" id="btnLocal"><svg width="20" height="20"><use href="#i-play"/></svg> Local Game <span class="kbd">Play vs. bots</span></button>
+      <button class="btn blue" id="btnLobby"><svg width="18" height="18"><use href="#i-gear"/></svg> Game Settings</button>
+      <button class="btn" id="btnFreeplay"><svg width="18" height="18"><use href="#i-person"/></svg> Freeplay <span class="kbd">No impostors</span></button>
+      <button class="btn" id="btnOnline" disabled><svg width="18" height="18"><use href="#i-net"/></svg> Online <span class="tagsoon">Coming soon</span></button>
+      <button class="btn ghost" id="btnHow"><svg width="18" height="18"><use href="#i-task"/></svg> How to Play</button>
+    </div>
+  </div>
+
+  <div class="bot">
+    <div id="buildInfo">Three.js &middot; WebGL2</div>
+    <div>An unofficial fan-made tribute. Not affiliated with or endorsed by InnerSloth.</div>
+  </div>
+</div>
+
+<!-- ============ LOBBY / GAME SETTINGS ============ -->
+<div class="screen" id="lobby">
+  <div class="sheet">
+    <div class="head">
+      <h2>Game Settings</h2>
+      <div class="sp"></div>
+      <button class="btn sm ghost" id="btnLobbyBack">Back</button>
+    </div>
+    <div class="body">
+      <div class="cols scroll" style="overflow-y:auto;max-height:60vh">
+        <div class="grp">
+          <h4>Match</h4>
+          <div class="opt"><div class="lbl">Map</div><div class="chips" id="optMap"></div></div>
+          <div class="opt"><div class="lbl">Max Players</div><div class="stepper"><button data-s="maxPlayers" data-d="-1">&minus;</button><span class="val" id="v-maxPlayers">10</span><button data-s="maxPlayers" data-d="1">+</button></div></div>
+          <div class="opt"><div class="lbl">Bots</div><div class="stepper"><button data-s="botCount" data-d="-1">&minus;</button><span class="val" id="v-botCount">9</span><button data-s="botCount" data-d="1">+</button></div></div>
+          <div class="opt"><div class="lbl">Impostors</div><div class="stepper"><button data-s="impostors" data-d="-1">&minus;</button><span class="val" id="v-impostors">2</span><button data-s="impostors" data-d="1">+</button></div></div>
+          <div class="opt"><div class="lbl">Crew Vision</div><div class="stepper"><button data-s="crewVision" data-d="-0.25">&minus;</button><span class="val" id="v-crewVision">1.0</span><button data-s="crewVision" data-d="0.25">+</button></div></div>
+          <div class="opt"><div class="lbl">Impostor Vision</div><div class="stepper"><button data-s="impostorVision" data-d="-0.25">&minus;</button><span class="val" id="v-impostorVision">1.5</span><button data-s="impostorVision" data-d="0.25">+</button></div></div>
+          <div class="opt"><div class="lbl">Player Speed</div><div class="stepper"><button data-s="playerSpeed" data-d="-0.25">&minus;</button><span class="val" id="v-playerSpeed">1.25</span><button data-s="playerSpeed" data-d="0.25">+</button></div></div>
+        </div>
+        <div class="grp">
+          <h4>Impostor</h4>
+          <div class="opt"><div class="lbl">Kill Cooldown</div><div class="stepper"><button data-s="killCooldown" data-d="-2.5">&minus;</button><span class="val" id="v-killCooldown">25s</span><button data-s="killCooldown" data-d="2.5">+</button></div></div>
+          <div class="opt"><div class="lbl">Kill Distance</div><div class="chips" id="optKillDist"></div></div>
+          <div class="opt"><div class="lbl">Sabotage Cooldown</div><div class="stepper"><button data-s="sabCooldown" data-d="-5">&minus;</button><span class="val" id="v-sabCooldown">25s</span><button data-s="sabCooldown" data-d="5">+</button></div></div>
+        </div>
+        <div class="grp">
+          <h4>Meetings</h4>
+          <div class="opt"><div class="lbl">Emergency Cooldown</div><div class="stepper"><button data-s="emergCooldown" data-d="-5">&minus;</button><span class="val" id="v-emergCooldown">15s</span><button data-s="emergCooldown" data-d="5">+</button></div></div>
+          <div class="opt"><div class="lbl">Emergency Meetings</div><div class="stepper"><button data-s="emergencies" data-d="-1">&minus;</button><span class="val" id="v-emergencies">1</span><button data-s="emergencies" data-d="1">+</button></div></div>
+          <div class="opt"><div class="lbl">Discussion Time</div><div class="stepper"><button data-s="discussion" data-d="-5">&minus;</button><span class="val" id="v-discussion">20s</span><button data-s="discussion" data-d="5">+</button></div></div>
+          <div class="opt"><div class="lbl">Voting Time</div><div class="stepper"><button data-s="voting" data-d="-15">&minus;</button><span class="val" id="v-voting">90s</span><button data-s="voting" data-d="15">+</button></div></div>
+          <div class="opt"><div class="lbl">Anonymous Votes</div><button class="tog" id="t-anonVotes"><i></i></button></div>
+          <div class="opt"><div class="lbl">Confirm Ejects</div><button class="tog on" id="t-confirmEjects"><i></i></button></div>
+        </div>
+        <div class="grp">
+          <h4>Tasks</h4>
+          <div class="opt"><div class="lbl">Common Tasks</div><div class="stepper"><button data-s="commonTasks" data-d="-1">&minus;</button><span class="val" id="v-commonTasks">1</span><button data-s="commonTasks" data-d="1">+</button></div></div>
+          <div class="opt"><div class="lbl">Long Tasks</div><div class="stepper"><button data-s="longTasks" data-d="-1">&minus;</button><span class="val" id="v-longTasks">1</span><button data-s="longTasks" data-d="1">+</button></div></div>
+          <div class="opt"><div class="lbl">Short Tasks</div><div class="stepper"><button data-s="shortTasks" data-d="-1">&minus;</button><span class="val" id="v-shortTasks">2</span><button data-s="shortTasks" data-d="1">+</button></div></div>
+          <div class="opt"><div class="lbl">Visual Tasks</div><button class="tog on" id="t-visualTasks"><i></i></button></div>
+          <div class="opt"><div class="lbl">Task Bar Updates</div><div class="chips" id="optTaskBar"></div></div>
+        </div>
+      </div>
+      <div class="mt2">
+        <div class="smallcaps" style="margin-bottom:8px">Crew</div>
+        <div class="slots" id="lobbySlots"></div>
+      </div>
+      <div class="foot">
+        <button class="btn ghost" id="btnResetSettings">Reset Defaults</button>
+        <div class="sp" style="flex:1"></div>
+        <button class="btn blue big" id="btnStart">Start Game</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ROLE REVEAL ============ -->
+<div class="screen" id="role">
+  <div class="flash"></div>
+  <div class="wrap">
+    <div id="roleCanvasHost" style="height:min(34vh,260px);display:flex;align-items:center;justify-content:center"></div>
+    <div class="big" id="roleTitle">Crewmate</div>
+    <div class="sub" id="roleSub">Complete all your tasks</div>
+    <div class="partners" id="rolePartners"></div>
+    <div class="sub" style="opacity:.6;margin-top:26px" id="roleHint">Tap anywhere to continue</div>
+  </div>
+</div>
+
+<!-- ============ HUD ============ -->
+<div id="hud">
+  <div id="roleChip" class="crew"><svg width="15" height="15"><use href="#i-person"/></svg><span id="roleChipTxt">Crewmate</span></div>
+  <div class="hudTop">
+    <div id="taskbarWrap"><div id="taskbarFill"></div><div class="tb-label">Tasks</div></div>
+    <div id="roomLabel">Cafeteria</div>
+  </div>
+  <div class="hudTopRight">
+    <button class="iconbtn pe" id="btnTaskList" title="Task list (Tab)"><svg><use href="#i-task"/></svg><span class="k">TAB</span></button>
+    <button class="iconbtn pe" id="btnMap" title="Map (M)"><svg><use href="#i-map"/></svg><span class="k">M</span></button>
+    <button class="iconbtn pe" id="btnSettings" title="Settings (Esc)"><svg><use href="#i-gear"/></svg><span class="k">ESC</span></button>
+  </div>
+  <div id="sabBanner"><span class="t" id="sabText">Reactor Meltdown</span><span class="c" id="sabClock">45</span></div>
+  <div id="toasts"></div>
+  <div id="taskList"></div>
+  <div id="cross"></div>
+  <div id="prompt"></div>
+  <div id="actions">
+    <button class="abtn sab pe" id="abSab"><svg><use href="#i-sab"/></svg><span class="cap">Sabotage</span><span class="key">B</span><span class="cd"></span><span class="cdt"></span></button>
+    <button class="abtn vent pe" id="abVent"><svg><use href="#i-vent"/></svg><span class="cap">Vent</span><span class="key">V</span><span class="cd"></span><span class="cdt"></span></button>
+    <button class="abtn kill pe" id="abKill"><svg><use href="#i-kill"/></svg><span class="cap">Kill</span><span class="key">Q</span><span class="cd"></span><span class="cdt"></span></button>
+    <button class="abtn report pe" id="abReport"><svg><use href="#i-report"/></svg><span class="cap">Report</span><span class="key">R</span><span class="cd"></span><span class="cdt"></span></button>
+    <button class="abtn use pe" id="abUse"><svg><use href="#i-use"/></svg><span class="cap">Use</span><span class="key">E</span><span class="cd"></span><span class="cdt"></span></button>
+  </div>
+</div>
+
+<!-- ============ TOUCH CONTROLS ============ -->
+<div id="touch">
+  <div id="lookZone"></div>
+  <div id="stickZone"><div id="stick"><i></i></div></div>
+  <div id="touchExtra">
+    <button class="iconbtn" id="tBtnMap"><svg><use href="#i-map"/></svg></button>
+    <button class="iconbtn" id="tBtnTask"><svg><use href="#i-task"/></svg></button>
+    <button class="iconbtn" id="tBtnView"><svg><use href="#i-eye"/></svg></button>
+  </div>
+  <div id="touchBtns"></div>
+</div>
+
+<!-- ============ TASK MODAL ============ -->
+<div id="modal">
+  <div class="twin" id="taskWin">
+    <div class="thead">
+      <h3 id="taskTitle">Task</h3>
+      <div class="stage" id="taskStage">Stage 1 of 2</div>
+      <button class="tx" id="taskClose">&times;</button>
+    </div>
+    <div class="tbody" id="taskBody"></div>
+    <div class="tfoot"><span id="taskFoot">Hold to complete</span><span class="sp"></span><span class="dim" id="taskLoc"></span></div>
+  </div>
+</div>
+
+<!-- ============ MAP OVERLAY ============ -->
+<div id="mapOv">
+  <div class="frame">
+    <div class="mh"><span id="mapTitle">The Skeld</span><span class="sp"></span><span class="hint" id="mapHint">Press M to close</span></div>
+    <canvas id="mapCanvas" width="920" height="560"></canvas>
+    <div id="sabLayer" style="position:absolute;inset:0;pointer-events:none"></div>
+  </div>
+</div>
+
+<!-- ============ MEETING ============ -->
+<div class="screen" id="meeting">
+  <div class="mHead">
+    <h2 id="meetTitle">Emergency Meeting</h2>
+    <div class="who" id="meetWho">Who do you think it is?</div>
+    <div id="timerBar"><i></i></div>
+  </div>
+  <div class="mBody">
+    <div id="chatBox">
+      <div id="chatLog" class="scroll"></div>
+      <div id="quickChat"></div>
+      <div id="chatInput"><input id="chatField" maxlength="120" placeholder="Type a message…" spellcheck="false" autocomplete="off"><button class="btn sm blue" id="chatSend">Send</button></div>
+    </div>
+    <div id="voteBox">
+      <div id="voteGrid" class="scroll"></div>
+      <div id="voteFoot">
+        <button class="btn ghost" id="btnSkip">Skip Vote</button>
+        <div class="sp"></div>
+        <div id="voteCount">Waiting for votes…</div>
+        <button class="btn red" id="btnVote">Vote</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ EJECT ============ -->
+<div class="screen solid" id="eject">
+  <div style="text-align:center">
+    <div class="txt" id="ejectTxt"></div>
+    <div class="sub" id="ejectSub"></div>
+  </div>
+</div>
+
+<!-- ============ RESULT ============ -->
+<div class="screen" id="result">
+  <div class="rbox">
+    <div class="rt" id="resTitle">Crewmates Win</div>
+    <div class="rs" id="resSub">All tasks completed</div>
+    <div class="stats" id="resStats"></div>
+    <div class="plist" id="resPlayers"></div>
+    <div class="mt2" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn blue big" id="btnAgain">Play Again</button>
+      <button class="btn ghost" id="btnMenuFromResult">Main Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS / PAUSE / HELP ============ -->
+<div class="screen" id="settings">
+  <div class="sheet" style="width:min(880px,94vw)">
+    <div class="head"><h2 id="setTitle">Settings</h2><div class="sp"></div>
+      <button class="btn sm ghost" id="btnSetClose">Close</button></div>
+    <div class="body">
+      <div id="setTabs" class="chips" style="justify-content:flex-start;margin-bottom:14px"></div>
+      <div id="setBody" class="scroll" style="max-height:56vh;overflow-y:auto"></div>
+      <div class="foot">
+        <button class="btn ghost" id="btnQuitMatch">Leave Match</button>
+        <div class="sp" style="flex:1"></div>
+        <button class="btn blue" id="btnSetDone">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="fps"></div>

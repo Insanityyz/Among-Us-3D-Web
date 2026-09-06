@@ -1,0 +1,10 @@
+const fs=require('fs');
+const src=fs.readFileSync(__dirname+'/30_logic.js','utf8');
+const L={};(new Function('exports',src+'\nexports.buildMap=buildMap;exports.MAP=MAP;'))(L);
+const M=L.buildMap(L.MAP);
+const r=M.byId.cafeteria;
+console.log('cafeteria bb:',JSON.stringify(r.bb),'wallH=',M.map.wallH);
+console.log('table/decor in cafeteria:');
+for(const s of M.stations) if(s.room==='cafeteria') console.log('   station',s.id,s.kind,'@',s.x.toFixed(1),s.z.toFixed(1));
+console.log('ship bounds:',JSON.stringify(M.rooms.reduce((a,x)=>({x1:Math.min(a.x1,x.bb.x1),z1:Math.min(a.z1,x.bb.z1),x2:Math.max(a.x2,x.bb.x2),z2:Math.max(a.z2,x.bb.z2)}),{x1:1e9,z1:1e9,x2:-1e9,z2:-1e9})));
+console.log('spawns:',JSON.stringify(M.spawns.slice(0,4)));
