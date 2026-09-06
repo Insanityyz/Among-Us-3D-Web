@@ -1,0 +1,2802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#06070d" />
+<title>Among Us 3D — Web Edition</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Varela+Round&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#06070d;
+    --panel:rgba(14,18,30,.92);
+    --panel2:rgba(20,26,44,.9);
+    --line:rgba(255,255,255,.10);
+    --cyan:#00d1ff;
+    --cyan2:#2ee6ff;
+    --red:#ff3b4d;
+    --yellow:#ffd23e;
+    --green:#35e07a;
+    --txt:#e8f2ff;
+    --muted:#8fa3c0;
+    --radius:18px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+    font-family:'Varela Round',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-user-select:none;user-select:none;touch-action:none;}
+  body{position:fixed;inset:0;}
+
+  canvas#c{position:absolute;inset:0;display:block;}
+
+  /* ---------- generic ---------- */
+  .hidden{display:none !important;}
+  .screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    z-index:50;padding:16px;pointer-events:auto;}
+  .fade{background:radial-gradient(120% 120% at 50% 0%, rgba(10,14,24,.72), rgba(4,5,10,.88));}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:0 24px 80px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+    padding:26px;backdrop-filter:blur(6px);}
+  .card h1,.card h2{margin:0;font-family:'Baloo 2','Varela Round',sans-serif;}
+
+  .btn{font-family:'Baloo 2',sans-serif;font-weight:700;cursor:pointer;border:none;
+    border-radius:14px;padding:12px 22px;font-size:16px;letter-spacing:.3px;
+    background:linear-gradient(180deg,#1c2233,#12172a);color:var(--txt);
+    border:1px solid var(--line);box-shadow:0 6px 18px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
+    transition:transform .08s ease, filter .12s ease, box-shadow .12s ease;}
+  .btn:hover{filter:brightness(1.15);}
+  .btn:active{transform:translateY(2px) scale(.99);}
+  .btn.primary{background:linear-gradient(180deg,#00d1ff,#0094cf);color:#04222c;
+    box-shadow:0 8px 24px rgba(0,209,255,.35), inset 0 1px 0 rgba(255,255,255,.5);}
+  .btn.primary:hover{box-shadow:0 10px 30px rgba(0,209,255,.55);}
+  .btn.red{background:linear-gradient(180deg,#ff4d5e,#d6223a);color:#fff;}
+  .btn.green{background:linear-gradient(180deg,#3ce37f,#17b45a);color:#04301a;}
+  .btn.ghost{background:rgba(255,255,255,.05);}
+  .btn.small{padding:8px 14px;font-size:13px;border-radius:10px;}
+  .btn:disabled{opacity:.45;cursor:default;filter:none;transform:none;}
+  .row{display:flex;gap:10px;align-items:center;}
+  .col{display:flex;flex-direction:column;gap:10px;}
+  .grow{flex:1;}
+  .muted{color:var(--muted);font-size:13px;}
+  .spacer{height:10px;}
+
+  input[type=text]{font-family:'Varela Round';background:#0c101d;border:1px solid var(--line);
+    color:var(--txt);border-radius:12px;padding:11px 14px;font-size:15px;outline:none;width:100%;}
+  input[type=text]:focus{border-color:var(--cyan);}
+  input[type=range]{width:100%;accent-color:var(--cyan);}
+
+  /* ---------- title ---------- */
+  .logo-wrap{text-align:center;margin-bottom:8px;}
+  .logo{font-family:'Baloo 2',sans-serif;font-weight:800;line-height:.9;letter-spacing:.5px;
+    font-size:clamp(44px,9vw,92px);margin:0;
+    background:linear-gradient(180deg,#7ee8ff 0%,#00d1ff 45%,#0077b6 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 6px 0 rgba(0,40,60,.9)) drop-shadow(0 14px 30px rgba(0,209,255,.35));
+    transform:rotate(-2deg);}
+  .logo small{display:block;font-size:.32em;letter-spacing:6px;color:var(--yellow);
+    -webkit-text-fill-color:var(--yellow);transform:rotate(2deg);margin-top:6px;}
+  .tagline{color:var(--muted);font-size:14px;margin-top:10px;}
+
+  /* ---------- lobby ---------- */
+  .swatches{display:flex;flex-wrap:wrap;gap:8px;max-width:330px;}
+  .swatch{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;
+    box-shadow:inset 0 -6px 10px rgba(0,0,0,.35), 0 3px 8px rgba(0,0,0,.4);transition:transform .1s;}
+  .swatch:hover{transform:scale(1.12);}
+  .swatch.sel{border-color:#fff;box-shadow:0 0 0 3px rgba(0,209,255,.7), inset 0 -6px 10px rgba(0,0,0,.3);}
+  .opt-pill{cursor:pointer;padding:9px 14px;border-radius:12px;border:1px solid var(--line);
+    background:rgba(255,255,255,.05);font-family:'Baloo 2';font-weight:700;font-size:14px;}
+  .opt-pill.sel{background:linear-gradient(180deg,#00d1ff,#0094cf);color:#04222c;border-color:transparent;}
+  .stat{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);}
+  .stat b{color:var(--txt);font-family:'Baloo 2';font-weight:700;}
+
+  /* ---------- HUD ---------- */
+  #hud{position:absolute;inset:0;pointer-events:none;z-index:20;}
+  #taskList{position:absolute;top:14px;left:14px;max-width:260px;display:flex;flex-direction:column;gap:5px;}
+  .task-item{font-size:12.5px;color:#cfe0ff;background:rgba(8,12,22,.72);border:1px solid var(--line);
+    padding:5px 10px;border-radius:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    transition:opacity .3s;}
+  .task-item.done{opacity:.38;text-decoration:line-through;}
+  #progressWrap{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:min(340px,40vw);
+    background:rgba(8,12,22,.75);border:1px solid var(--line);border-radius:20px;height:22px;overflow:hidden;}
+  #progressBar{height:100%;width:0%;background:linear-gradient(90deg,#00d1ff,#7ef0ff);box-shadow:0 0 14px rgba(0,209,255,.7);
+    border-radius:20px;transition:width .4s ease;}
+  #progressLabel{position:absolute;top:36px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--muted);}
+  #minimap{position:absolute;top:14px;right:14px;background:rgba(8,12,22,.8);border:1px solid var(--line);
+    border-radius:12px;pointer-events:auto;cursor:pointer;}
+  #prompt{position:absolute;left:50%;bottom:17%;transform:translateX(-50%);
+    background:rgba(8,12,22,.85);border:1px solid var(--line);border-radius:12px;
+    padding:9px 16px;font-size:15px;color:#fff;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.5);}
+  #prompt b{color:var(--cyan);font-family:'Baloo 2';font-weight:800;}
+  #crosshair{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;
+    border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 8px rgba(0,209,255,.8);}
+  .actionbar{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;align-items:flex-end;}
+  .action{pointer-events:auto;width:62px;height:62px;border-radius:50%;border:2px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:12px;
+    background:rgba(10,14,26,.85);color:#fff;cursor:pointer;text-align:center;line-height:1.05;
+    box-shadow:0 8px 20px rgba(0,0,0,.45);transition:transform .08s, box-shadow .1s;text-shadow:0 1px 2px #000;}
+  .action:active{transform:scale(.94);}
+  .action.kill{background:radial-gradient(circle at 50% 35%,#ff5a6b,#c1192e);border-color:#ff8593;}
+  .action.report{background:radial-gradient(circle at 50% 35%,#ffb84d,#d97706);border-color:#ffd23e;color:#3a2000;}
+  .action.vent{background:radial-gradient(circle at 50% 35%,#8b7bff,#5b3fd4);border-color:#b6a6ff;}
+  .action.sab{background:radial-gradient(circle at 50% 35%,#ff5a6b,#a3122b);border-color:#ff8593;}
+  .action.use{background:radial-gradient(circle at 50% 35%,#3ad0ff,#0077b6);border-color:#8fe8ff;}
+  .action .cooldown{font-size:16px;display:block;}
+  .action.disabled{filter:grayscale(1);opacity:.55;}
+  #sabCooldown{position:absolute;right:16px;bottom:92px;color:var(--red);font-family:'Baloo 2';font-size:13px;}
+
+  #banner{position:absolute;top:13%;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;}
+  .banner-txt{font-family:'Baloo 2';font-weight:800;font-size:clamp(18px,3.4vw,30px);color:#fff;
+    background:linear-gradient(180deg,#ff5a6b,#c1192e);padding:10px 26px;border-radius:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);animation:pulse 1s infinite;}
+  .banner-sub{color:#ffd9dd;font-size:14px;margin-top:6px;}
+  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+  #announce{position:absolute;bottom:24%;left:50%;transform:translateX(-50%);text-align:center;color:#fff;
+    font-family:'Baloo 2';font-weight:700;font-size:20px;text-shadow:0 3px 10px #000;pointer-events:none;}
+
+  /* ---------- touch controls ---------- */
+  #touch{position:absolute;inset:0;z-index:30;pointer-events:none;}
+  .joy{position:absolute;left:26px;bottom:30px;width:130px;height:130px;border-radius:50%;
+    background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.22);pointer-events:auto;}
+  .joy-knob{position:absolute;left:50%;top:50%;width:56px;height:56px;border-radius:50%;
+    background:rgba(0,209,255,.55);transform:translate(-50%,-50%);box-shadow:0 4px 14px rgba(0,0,0,.5);}
+  .touch-btns{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;gap:10px;pointer-events:auto;}
+
+  /* ---------- minigames ---------- */
+  #minigame{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(4,5,10,.55);}
+  #minigame.open{display:flex;}
+  .mg{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;
+    width:min(92vw,480px);box-shadow:0 30px 90px rgba(0,0,0,.7);}
+  .mg h2{margin:0 0 4px;font-family:'Baloo 2';color:#fff;}
+  .mg .sub{color:var(--muted);font-size:13px;margin-bottom:14px;}
+  .mg-bar{height:14px;border-radius:8px;background:#0c101d;overflow:hidden;border:1px solid var(--line);}
+  .mg-bar > div{height:100%;width:0%;background:linear-gradient(90deg,#00d1ff,#7ef0ff);transition:width .12s linear;}
+  .mg-num{font-family:'Baloo 2';font-weight:800;font-size:30px;color:#fff;text-align:center;margin:8px 0;}
+  .mg-grid{display:grid;gap:10px;}
+  .mg-btn{font-family:'Baloo 2';font-weight:700;border:none;border-radius:12px;padding:16px;font-size:16px;cursor:pointer;
+    background:linear-gradient(180deg,#1c2233,#12172a);color:#fff;border:1px solid var(--line);}
+  .mg-btn:active{filter:brightness(1.2);}
+  .mg-btn.on{background:linear-gradient(180deg,#3ce37f,#17b45a);}
+  .mg-btn.lit{background:linear-gradient(180deg,#00d1ff,#0094cf);color:#04222c;}
+  .pad-row{display:flex;gap:10px;justify-content:center;}
+  .pad{width:58px;height:58px;border-radius:14px;background:#0c101d;border:1px solid var(--line);
+    color:#fff;font-family:'Baloo 2';font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;}
+  .pad.lit{background:#00d1ff;color:#04222c;box-shadow:0 0 16px rgba(0,209,255,.8);}
+  /* swipe card */
+  #swipeTrack{position:relative;height:86px;background:#0c101d;border-radius:14px;border:1px solid var(--line);overflow:hidden;}
+  #swipeCard{position:absolute;top:12px;left:6px;width:78px;height:62px;border-radius:10px;cursor:grab;
+    background:linear-gradient(135deg,#3a86ff,#1a3f8f);box-shadow:0 4px 12px rgba(0,0,0,.5);}
+  #swipeCard:before{content:'CHIP';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:rgba(255,255,255,.7);font-family:'Baloo 2';font-weight:800;letter-spacing:1px;font-size:11px;}
+  #swipeZone{position:absolute;right:0;top:0;width:86px;height:100%;background:repeating-linear-gradient(90deg,transparent 0 8px,rgba(0,209,255,.15) 8px 16px);}
+  /* wires */
+  .wire-col{display:flex;justify-content:space-between;gap:12px;}
+  .wire-node{width:56px;height:56px;border-radius:12px;cursor:pointer;border:2px solid rgba(255,255,255,.2);}
+  .wire-node.sel{outline:3px solid #fff;}
+  .wire-node.matched{opacity:.25;pointer-events:none;}
+  /* hex shield */
+  .hexgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;justify-items:center;}
+  .hex{width:74px;height:66px;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+    background:#15203a;cursor:pointer;transition:background .12s, transform .1s;}
+  .hex.lit{background:radial-gradient(circle at 50% 40%,#7ef0ff,#00a8d6);box-shadow:0 0 18px rgba(0,209,255,.7);}
+  .hex:active{transform:scale(.94);}
+  /* steering / drag */
+  .drag-wrap{position:relative;height:150px;background:#0c101d;border-radius:14px;border:1px solid var(--line);touch-action:none;}
+  .drag-handle{position:absolute;width:44px;height:44px;border-radius:50%;background:var(--cyan);cursor:grab;}
+  /* switches */
+  .sw-row{display:flex;justify-content:space-between;gap:8px;}
+  .sw{width:52px;height:64px;border-radius:10px;cursor:pointer;position:relative;background:#0c101d;border:1px solid var(--line);}
+  .sw .lev{position:absolute;left:50%;top:52%;width:26px;height:14px;border-radius:7px;background:#334;transform:translate(-50%,-50%) rotate(0deg);transition:transform .15s;}
+  .sw.on .lev{transform:translate(-50%,-100%) rotate(0deg);background:var(--cyan);}
+
+  /* ---------- meeting ---------- */
+  #meeting{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;
+    background:radial-gradient(120% 130% at 50% 0%, rgba(20,10,30,.94), rgba(4,5,10,.98));}
+  #meeting.open{display:flex;}
+  .meet-panel{display:flex;gap:18px;width:min(96vw,920px);height:min(88vh,560px);}
+  .meet-left{flex:1.25;display:flex;flex-direction:column;gap:10px;}
+  .meet-right{flex:1;display:flex;flex-direction:column;gap:10px;}
+  .players{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;overflow:auto;padding:4px;}
+  .pl{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;border-radius:14px;padding:10px 6px;
+    border:2px solid transparent;background:rgba(255,255,255,.04);transition:transform .1s;}
+  .pl:hover{transform:translateY(-3px);}
+  .pl.vote-sel{border-color:var(--cyan);background:rgba(0,209,255,.12);}
+  .pl.dead{opacity:.4;filter:grayscale(1);}
+  .pl.ejected{animation:eject .7s forwards;}
+  @keyframes eject{0%{transform:translate(0,0);opacity:1;}100%{transform:translate(60vw,-40vh) rotate(90deg);opacity:0;}}
+  .pl-av{width:58px;height:58px;border-radius:50%;position:relative;box-shadow:inset 0 -10px 14px rgba(0,0,0,.3);}
+  .pl-av:after{content:'';position:absolute;left:16%;top:14%;width:68%;height:40%;border-radius:12px;
+    background:rgba(120,200,255,.85);box-shadow:inset 0 2px 4px rgba(255,255,255,.7);}
+  .pl-name{font-family:'Baloo 2';font-weight:700;font-size:12.5px;color:#fff;max-width:90px;overflow:hidden;text-overflow:ellipsis;}
+  .chat{flex:1;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:14px;padding:12px;overflow:auto;display:flex;flex-direction:column;gap:6px;}
+  .msg{font-size:13px;line-height:1.35;word-break:break-word;}
+  .msg b{font-family:'Baloo 2';}
+  .msg .sys{color:var(--muted);}
+  .chat-in{display:flex;gap:8px;}
+  .vote-hint{font-family:'Baloo 2';font-weight:700;font-size:14px;color:var(--yellow);text-align:center;}
+  .timer{font-family:'Baloo 2';font-weight:800;font-size:26px;text-align:center;color:#fff;}
+  .result{text-align:center;font-family:'Baloo 2';font-weight:800;font-size:22px;color:#fff;}
+  .result small{display:block;color:var(--muted);font-size:14px;font-weight:500;}
+
+  /* ---------- sabotage / vent menus ---------- */
+  .menu-title{font-family:'Baloo 2';font-weight:800;font-size:18px;margin:0 0 12px;color:#fff;}
+  .sab-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;width:min(92vw,420px);}
+  .sab-item{padding:18px;border-radius:14px;background:linear-gradient(180deg,#25121a,#1a0c12);border:1px solid rgba(255,80,100,.35);
+    cursor:pointer;text-align:center;font-family:'Baloo 2';font-weight:800;color:#ffdfe3;}
+  .sab-item:active{filter:brightness(1.2);}
+  .sab-item .ico{font-size:26px;display:block;}
+  .sab-item:disabled{opacity:.4;cursor:default;filter:none;}
+  .vent-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:min(92vw,380px);}
+
+  /* ---------- announce / banners ---------- */
+  #sabotageBanner{position:absolute;top:12%;left:50%;transform:translateX(-50%);z-index:25;text-align:center;pointer-events:none;}
+
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:6px;}
+</style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+
+  <!-- ===================== HUD ===================== -->
+  <div id="hud" class="hidden">
+    <div id="taskList"></div>
+    <div id="progressWrap"><div id="progressBar"></div></div>
+    <div id="progressLabel"></div>
+    <canvas id="minimap" width="200" height="140"></canvas>
+    <div id="crosshair"></div>
+    <div id="prompt" class="hidden"></div>
+    <div id="sabCooldown" class="hidden"></div>
+    <div class="actionbar">
+      <div class="action use hidden" id="btnUse">E</div>
+      <div class="action report hidden" id="btnReport">R<br>Report</div>
+      <div class="action kill hidden" id="btnKill">Q<br>Kill</div>
+      <div class="action vent hidden" id="btnVent">V<br>Vent</div>
+      <div class="action sab hidden" id="btnSab">Tab<br>Map</div>
+    </div>
+    <div id="sabotageBanner"></div>
+    <div id="announce"></div>
+  </div>
+
+  <!-- ===================== TOUCH ===================== -->
+  <div id="touch" class="hidden">
+    <div class="joy" id="joy"><div class="joy-knob" id="joyKnob"></div></div>
+    <div class="touch-btns">
+      <div class="action use" id="tUse">USE</div>
+      <div class="action report hidden" id="tReport">RPT</div>
+      <div class="action kill hidden" id="tKill">KILL</div>
+      <div class="action vent hidden" id="tVent">VENT</div>
+      <div class="action sab hidden" id="tSab">MAP</div>
+    </div>
+  </div>
+
+  <!-- ===================== MENU ===================== -->
+  <div class="screen fade" id="menu">
+    <div class="card" style="width:min(92vw,460px);text-align:center;">
+      <div class="logo-wrap">
+        <h1 class="logo">AMONG&nbsp;US<small>3D · WEB EDITION</small></h1>
+      </div>
+      <p class="tagline">A fan-made, first-person 3D tribute to the social deduction phenomenon.<br>Find the impostor. Finish your tasks. Don't get spaced.</p>
+      <div class="spacer"></div>
+      <div class="col">
+        <button class="btn primary" id="btnPlay" style="font-size:20px;padding:16px;">▶ PLAY</button>
+        <button class="btn ghost" id="btnHow">How to Play</button>
+      </div>
+      <div class="spacer"></div>
+      <div id="howText" class="hidden" style="text-align:left;font-size:13px;color:var(--muted);line-height:1.6;">
+        <b style="color:#fff">Crewmates:</b> complete every task on your list, or vote out all impostors.
+        Move with <b style="color:#fff">WASD</b>, look with the <b style="color:#fff">mouse</b>, press <b style="color:#fff">E</b> to interact, <b style="color:#fff">R</b> to report a body, <b style="color:#fff">Tab</b> for the map.<br><br>
+        <b style="color:#ff5a6b">Impostors:</b> kill the crew with <b style="color:#fff">Q</b>, travel through <b style="color:#fff">vents</b> with <b style="color:#fff">V</b>, and call <b style="color:#fff">sabotages</b> with <b style="color:#fff">Tab</b>. Blend in — fake your tasks.<br><br>
+        Touch controls appear automatically on mobile.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== LOBBY ===================== -->
+  <div class="screen fade hidden" id="lobby">
+    <div class="card" style="width:min(94vw,520px);">
+      <h2 style="font-size:26px;color:#7ee8ff;">LOBBY</h2>
+      <p class="muted" style="margin:2px 0 16px;">Set up the match — online play is coming soon, so fill the ship with bots.</p>
+      <div class="col">
+        <div>
+          <div class="stat"><span>Your name</span></div>
+          <input type="text" id="nameInput" maxlength="12" value="You" />
+        </div>
+        <div>
+          <div class="stat"><span>Your color</span></div>
+          <div class="swatches" id="swatches"></div>
+        </div>
+        <div>
+          <div class="stat"><span>Your role</span><b id="roleLabel">Random</b></div>
+          <div class="row" id="rolePick">
+            <div class="opt-pill" data-role="crew">Crewmate</div>
+            <div class="opt-pill" data-role="imp">Impostor</div>
+            <div class="opt-pill sel" data-role="random">Random</div>
+          </div>
+        </div>
+        <div>
+          <div class="stat"><span>Total players (incl. you)</span><b id="playerCountLabel">8</b></div>
+          <input type="range" id="playerCount" min="4" max="10" step="1" value="8" />
+        </div>
+        <div>
+          <div class="stat"><span>Impostors</span><b id="impCountLabel">2</b></div>
+          <input type="range" id="impCount" min="1" max="3" step="1" value="2" />
+        </div>
+        <div>
+          <div class="stat"><span>Map</span><b>The Skeld</b></div>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button class="btn ghost" id="btnBackMenu">◀ Back</button>
+          <button class="btn primary grow" id="btnStart">LAUNCH SHIP ▶</button>
+        </div>
+        <p class="muted" style="font-size:11px;">Tip: on desktop, click the game once to capture the mouse. Press <b>Esc</b> to free it.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== PAUSE ===================== -->
+  <div class="screen fade hidden" id="pause">
+    <div class="card" style="width:min(92vw,360px);text-align:center;">
+      <h2>PAUSED</h2>
+      <div class="spacer"></div>
+      <div class="col">
+        <button class="btn primary" id="btnResume">Resume</button>
+        <button class="btn ghost" id="btnPauseQuit">Quit to Lobby</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== GAME OVER ===================== -->
+  <div class="screen fade hidden" id="gameover">
+    <div class="card" style="width:min(92vw,440px);text-align:center;">
+      <div id="goTitle" style="font-family:'Baloo 2';font-weight:800;font-size:44px;"></div>
+      <div id="goSub" class="muted" style="margin:6px 0 18px;font-size:15px;"></div>
+      <div class="row" style="justify-content:center;">
+        <button class="btn primary" id="btnAgain">Play Again</button>
+        <button class="btn ghost" id="btnGoMenu">Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== MINIGAME ===================== -->
+  <div id="minigame"><div class="mg" id="mgBox"></div></div>
+
+  <!-- ===================== MEETING ===================== -->
+  <div id="meeting">
+    <div class="card meet-panel" style="background:rgba(10,8,20,.96);">
+      <div class="meet-left">
+        <div class="timer" id="meetTimer">60</div>
+        <div class="players" id="playersList"></div>
+        <div class="vote-hint" id="voteHint">Discussion — share what you saw</div>
+      </div>
+      <div class="meet-right">
+        <div class="chat" id="chat"></div>
+        <div class="chat-in">
+          <input type="text" id="chatInput" maxlength="80" placeholder="Say something…" />
+          <button class="btn small primary" id="btnSend">Send</button>
+        </div>
+        <div class="row">
+          <button class="btn grow" id="btnVoteConfirm">Confirm Vote</button>
+          <button class="btn ghost" id="btnSkip">Skip</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SABOTAGE MENU ===================== -->
+  <div class="screen fade hidden" id="sabotage">
+    <div class="card" style="text-align:center;">
+      <h2 class="menu-title">⚡ SABOTAGE</h2>
+      <div class="sab-grid">
+        <div class="sab-item" data-sab="reactor"><span class="ico">☢️</span>Reactor Meltdown</div>
+        <div class="sab-item" data-sab="o2"><span class="ico">🫁</span>O2 Depletion</div>
+        <div class="sab-item" data-sab="lights"><span class="ico">💡</span>Lights Out</div>
+        <div class="sab-item" data-sab="comms"><span class="ico">📡</span>Comms Jam</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="btnSabClose">Close</button>
+    </div>
+  </div>
+
+  <!-- ===================== VENT MENU ===================== -->
+  <div class="screen fade hidden" id="ventmenu">
+    <div class="card" style="text-align:center;">
+      <h2 class="menu-title">🕳 CHOOSE VENT</h2>
+      <div class="vent-grid" id="ventGrid"></div>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="btnVentClose">Stay here</button>
+    </div>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+  import * as THREE from 'three';
+  import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+  /* =====================================================================
+     CONSTANTS & HELPERS
+  ===================================================================== */
+  const CS = 2;                 // world units per grid cell
+  const COLS = 50, ROWS = 27;   // grid dimensions
+  const WALL_H = 3.3, CEIL_H = 3.4;
+  const wx = c => (c - 24.5) * CS;
+  const wz = r => (r - 13.0) * CS;
+  const RAND = a => a[Math.floor(Math.random() * a.length)];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const rndi = (a, b) => Math.floor(rnd(a, b + 1));
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const dist2 = (ax, az, bx, bz) => { const dx = ax - bx, dz = az - bz; return dx * dx + dz * dz; };
+  const IS_TOUCH = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)) && window.matchMedia('(pointer: coarse)').matches;
+
+  const COLORS = [
+    { id: 'red',    hex: 0xC51111, css: '#C51111' }, { id: 'blue',   hex: 0x132ED1, css: '#132ED1' },
+    { id: 'green',  hex: 0x117F2D, css: '#117F2D' }, { id: 'pink',   hex: 0xED54BA, css: '#ED54BA' },
+    { id: 'orange', hex: 0xEF7D0D, css: '#EF7D0D' }, { id: 'yellow', hex: 0xF6F657, css: '#F6F657' },
+    { id: 'black',  hex: 0x3F474E, css: '#3F474E' }, { id: 'white',  hex: 0xD6E0F0, css: '#D6E0F0' },
+    { id: 'purple', hex: 0x6B2FBB, css: '#6B2FBB' }, { id: 'brown',  hex: 0x71491E, css: '#71491E' },
+    { id: 'cyan',   hex: 0x38FEDC, css: '#38FEDC' }, { id: 'lime',   hex: 0x50EF39, css: '#50EF39' },
+  ];
+  const colorOf = id => COLORS.find(c => c.id === id) || COLORS[0];
+
+  const ROOM_ACCENT = {
+    U:'#ff8a3d', B:'#3ddbd0', G:'#8f7bff', R:'#ff5a6b', A:'#ffd23e', C:'#38c8ff', W:'#ff5a6b',
+    H:'#5ae4a0', L:'#ff8a3d', S:'#c99a63', M:'#4d9bff', E:'#ffd23e', O:'#5ae4a0', N:'#4d9bff',
+  };
+
+  /* =====================================================================
+     AUDIO (procedural WebAudio SFX — no external files)
+  ===================================================================== */
+  const SFX = {
+    ctx: null, master: null, vol: 0.85,
+    init() {
+      if (this.ctx) return;
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.vol;
+      this.master.connect(this.ctx.destination);
+    },
+    resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+    setVol(v) { this.vol = v; if (this.master) this.master.gain.value = v; },
+    tone(freq, dur, type = 'sine', vol = 0.3, slideTo = 0, delay = 0) {
+      if (!this.ctx) return;
+      const t0 = this.ctx.currentTime + delay;
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t0);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), t0 + dur);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(vol, t0 + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(this.master);
+      o.start(t0); o.stop(t0 + dur + 0.05);
+    },
+    noise(dur, vol = 0.2, delay = 0, hp = 0) {
+      if (!this.ctx) return;
+      const t0 = this.ctx.currentTime + delay;
+      const len = Math.max(1, Math.floor(this.ctx.sampleRate * dur));
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      const src = this.ctx.createBufferSource(); src.buffer = buf;
+      const f = this.ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp;
+      const g = this.ctx.createGain();
+      g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      src.connect(f); f.connect(g); g.connect(this.master);
+      src.start(t0);
+    },
+    play(name) {
+      if (!this.ctx) return;
+      switch (name) {
+        case 'click':   this.tone(700, .06, 'square', .12); break;
+        case 'hover':   this.tone(900, .04, 'sine', .05); break;
+        case 'use':     this.tone(520, .09, 'square', .16); this.tone(780, .1, 'square', .12, 0, .05); break;
+        case 'task':    this.tone(660, .12, 'square', .18); this.tone(880, .14, 'square', .18, 0, .1); this.tone(1320, .2, 'square', .16, 0, .2); break;
+        case 'taskfail':this.tone(220, .18, 'sawtooth', .14, 160); break;
+        case 'kill':    this.noise(.18, .5, 0, 120); this.tone(180, .22, 'sawtooth', .28, 70); this.tone(90, .3, 'sine', .3, 40, .02); break;
+        case 'report':  this.tone(880, .5, 'square', .18, 0); this.tone(660, .5, 'square', .18, 0, .16); break;
+        case 'emergency': this.tone(880, .35, 'square', .2); this.tone(660, .35, 'square', .2, 0, .15); this.tone(880, .35, 'square', .2, 0, .3); break;
+        case 'sab':     this.tone(520, .6, 'sawtooth', .22, 260); this.tone(260, .6, 'sawtooth', .18, 130, .3); break;
+        case 'alarm':   this.tone(700, .25, 'square', .2); this.tone(520, .25, 'square', .2, 0, .3); break;
+        case 'vent':    this.noise(.35, .3, 0, 700); this.tone(300, .3, 'sine', .12, 90); break;
+        case 'door':    this.noise(.3, .25, 0, 300); break;
+        case 'eject':   this.noise(.6, .3, 0, 900); this.tone(900, .5, 'sine', .1, 200); break;
+        case 'vote':    this.tone(500, .05, 'square', .12); break;
+        case 'win':     [523, 659, 784, 1046].forEach((f, i) => this.tone(f, .22, 'square', .2, 0, i * .13)); break;
+        case 'lose':    [400, 340, 280, 200].forEach((f, i) => this.tone(f, .3, 'sawtooth', .18, 0, i * .16)); break;
+        case 'step':    this.noise(.04, .05, 0, 800); break;
+        case 'taskbar': this.tone(1200, .1, 'sine', .14); break;
+      }
+    }
+  };
+
+  /* =====================================================================
+     INPUT (keyboard + mouse + touch)
+  ===================================================================== */
+  const Input = {
+    keys: new Set(),
+    move: { x: 0, y: 0 },      // -1..1 WASD
+    look: { x: 0, y: 0 },      // per-frame mouse/touch deltas
+    locked: false,
+    joy: { active: false, id: null, bx: 0, by: 0, dx: 0, dy: 0 },
+    touchLook: { active: false, id: null, lx: 0, ly: 0 },
+    init() {
+      addEventListener('keydown', e => {
+        if (e.repeat) return;
+        this.keys.add(e.code);
+        if (['KeyW','KeyA','KeyS','KeyD','Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+      });
+      addEventListener('keyup', e => this.keys.delete(e.code));
+      addEventListener('blur', () => this.keys.clear());
+      addEventListener('mousemove', e => {
+        if (this.locked) { this.look.x += e.movementX; this.look.y += e.movementY; }
+        else if (this.touchLook.active) { this.look.x += (e.clientX - this.touchLook.lx); this.look.y += (e.clientY - this.touchLook.ly); this.touchLook.lx = e.clientX; this.touchLook.ly = e.clientY; }
+      });
+      addEventListener('pointerdown', e => { SFX.init(); SFX.resume(); });
+    },
+    key(k) { return this.keys.has(k); },
+    consumeLook() { const l = { x: this.look.x, y: this.look.y }; this.look.x = 0; this.look.y = 0; return l; },
+    readMove() {
+      let x = 0, y = 0;
+      if (this.key('KeyW') || this.key('ArrowUp')) y -= 1;
+      if (this.key('KeyS') || this.key('ArrowDown')) y += 1;
+      if (this.key('KeyA') || this.key('ArrowLeft')) x -= 1;
+      if (this.key('KeyD') || this.key('ArrowRight')) x += 1;
+      if (this.joy.active) { x = this.joy.dx; y = this.joy.dy; }
+      const m = Math.hypot(x, y);
+      if (m > 1) { x /= m; y /= m; }
+      return { x, y };
+    }
+  };
+
+  /* =====================================================================
+     MAP — The Skeld (inspired). All world units.
+  ===================================================================== */
+  const ROOMS = [
+    { key:'U', name:'Upper Engine',     x:-35, z:-17, w:12, d:10 },
+    { key:'B', name:'MedBay',           x:-15, z:-17, w:12, d:10 },
+    { key:'G', name:'Security',         x: 13, z:-15, w:12, d:10 },
+    { key:'R', name:'Reactor',          x: 35, z:-14, w:16, d:16 },
+    { key:'A', name:'Admin',            x:-35, z:  2, w:12, d:12 },
+    { key:'C', name:'Cafeteria',        x: -5, z:  4, w:28, d:16 },
+    { key:'W', name:'Weapons',          x: 26, z:  3, w:14, d:10 },
+    { key:'H', name:'Shields',          x: 43, z:  3, w:12, d:10 },
+    { key:'L', name:'Lower Engine',     x:-35, z: 19, w:12, d:10 },
+    { key:'S', name:'Storage',          x:-19, z: 19, w:12, d:10 },
+    { key:'M', name:'Communications',   x: -4, z: 19, w:10, d:10 },
+    { key:'E', name:'Electrical',       x: 11, z: 21, w:12, d:10 },
+    { key:'O', name:'O2',               x: 27, z: 21, w:12, d:10 },
+    { key:'N', name:'Navigation',       x: 43, z: 21, w:12, d:10 },
+  ];
+  const CORRIDORS = [
+    { x:-25, z:-17, w:8,  d:6 }, { x:-1,  z:-17, w:16, d:6 }, { x:23,  z:-17, w:8, d:6 },
+    { x:-24, z: 2,  w:10, d:8 }, { x:14,  z: 2,  w:10, d:8 }, { x:35,  z: 2,  w:4, d:4 },
+    { x:-34, z:-8,  w:6,  d:8 }, { x:-14, z:-8,  w:6,  d:8 }, { x:26,  z:-4,  w:6, d:4 },
+    { x:-34, z:11,  w:6,  d:6 }, { x:-6,  z:14,  w:6,  d:4 }, { x:28,  z:12,  w:6, d:8 },
+    { x:43,  z:12,  w:4,  d:8 }, { x:-27, z:20,  w:4,  d:4 }, { x:-11, z:20,  w:4, d:4 },
+    { x:3,   z:20,  w:4,  d:4 }, { x:19,  z:20,  w:4,  d:4 }, { x:35,  z:20,  w:4, d:4 },
+  ];
+
+  // vents (impostor fast-travel). Groups share an index.
+  const VENT_GROUPS = [
+    ['E', 'B', 'G'],           // Electrical <-> MedBay <-> Security
+    ['U', 'R'],                // Upper Engine <-> Reactor
+    ['C', 'A'],                // Cafeteria <-> Admin
+    ['S', 'M', 'L'],           // Storage <-> Communications <-> Lower Engine
+    ['W', 'N', 'H', 'O'],      // Weapons <-> Navigation <-> Shields <-> O2
+  ];
+  const VENT_OFFSETS = {
+    U:[0,2], B:[-1,-1], G:[1,-2], R:[-2,2], A:[2,0], C:[-8,4], W:[2,-2], H:[-2,0],
+    L:[0,-2], S:[2,2], M:[0,0], E:[2,0], O:[-2,-2], N:[-2,0],
+  };
+
+  // spawn + emergency meeting button (in cafeteria)
+  const SPAWN = { x: -5, z: 8 };
+  const EMERGENCY = { x: -5, z: 4.2, room: 'C' };
+
+  // task stations: where each task can be performed + which minigame
+  const TASK_STATIONS = [
+    { id:'swipe',    name:'Swipe Card',           room:'A', x:-39, z: 2,  mg:'swipe' },
+    { id:'download', name:'Download Data',        room:'W', x: 23, z: 4,  mg:'hold' },
+    { id:'upload',   name:'Upload Data',          room:'A', x:-33, z: 4,  mg:'hold' },
+    { id:'calib',    name:'Calibrate Distributor',room:'E', x: 9,  z:22,  mg:'calibrate' },
+    { id:'leaves',   name:'Clean O2 Filter',      room:'O', x: 23, z:22,  mg:'leaves' },
+    { id:'ventc',    name:'Clean Vent',           room:'E', x: 13, z:22,  mg:'hold' },
+    { id:'asteroids',name:'Clear Asteroids',      room:'W', x: 21, z: 2,  mg:'asteroids' },
+    { id:'divert',   name:'Divert Power',         room:'E', x: 7,  z:18,  mg:'switches' },
+    { id:'accept',   name:'Accept Diverted Power',room:'N', x: 39, z:22,  mg:'switches' },
+    { id:'chute',    name:'Empty Chute',          room:'O', x: 29, z:20,  mg:'hold' },
+    { id:'garbage1', name:'Empty Garbage',        room:'C', x: -9, z: 2,  mg:'hold' },
+    { id:'garbage2', name:'Empty Garbage',        room:'S', x:-23, z:18,  mg:'hold' },
+    { id:'fuel1',    name:'Fuel Engines',         room:'S', x:-25, z:20,  mg:'hold' },
+    { id:'fuel2',    name:'Fuel Engines',         room:'U', x:-39, z:-18, mg:'hold' },
+    { id:'sample',   name:'Inspect Sample',       room:'B', x:-17, z:-18, mg:'hold' },
+    { id:'scan',     name:'Submit Scan',          room:'B', x:-21, z:-16, mg:'scan' },
+    { id:'shields',  name:'Prime Shields',        room:'H', x: 41, z: 4,  mg:'shields' },
+    { id:'steer',    name:'Stabilize Steering',   room:'N', x: 45, z:20,  mg:'steer' },
+    { id:'reactor',  name:'Start Reactor',        room:'R', x: 33, z:-16, mg:'simon' },
+    { id:'manifolds',name:'Unlock Manifolds',     room:'R', x: 29, z:-16, mg:'buttons' },
+    { id:'align',    name:'Align Engine Output',  room:'U', x:-33, z:-20, mg:'align' },
+    { id:'chart',    name:'Chart Course',         room:'N', x: 41, z:20,  mg:'chart' },
+    { id:'wiresE',   name:'Fix Wiring',           room:'E', x: 9,  z:18,  mg:'wires' },
+    { id:'wiresS',   name:'Fix Wiring',           room:'S', x:-19, z:20,  mg:'wires' },
+    { id:'wiresA',   name:'Fix Wiring',           room:'A', x:-37, z: 4,  mg:'wires' },
+  ];
+
+  // sabotage fix stations
+  const FIX_STATIONS = {
+    lights: { room:'E', x: 7,  z: 22,  label:'Fix Lights' },
+    comms:  { room:'M', x: -5, z: 18,  label:'Restore Comms' },
+    reactor:{ room:'R', x: 33, z: -16, label:'Stop Reactor' },
+    o2a:    { room:'O', x: 29, z: 22,  label:'O2 Keypad' },
+    o2b:    { room:'A', x: -33, z: -2, label:'O2 Keypad' },
+  };
+
+  // ---- rasterize occupancy grid ----
+  const FLOOR = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
+  function markCells(c0, c1, r0, r1, key) {
+    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) FLOOR[r][c] = key;
+  }
+  for (const R of ROOMS) {
+    markCells(Math.round((R.x - R.w / 2) / CS + 24.5), Math.round((R.x + R.w / 2) / CS + 24.5) - 1,
+              Math.round((R.z - R.d / 2) / CS + 13),   Math.round((R.z + R.d / 2) / CS + 13) - 1, R.key);
+  }
+  for (const C of CORRIDORS) {
+    markCells(Math.round((C.x - C.w / 2) / CS + 24.5), Math.round((C.x + C.w / 2) / CS + 24.5) - 1,
+              Math.round((C.z - C.d / 2) / CS + 13),   Math.round((C.z + C.d / 2) / CS + 13) - 1, '.');
+  }
+  const solidAt = (c, r) => c < 0 || r < 0 || c >= COLS || r >= ROWS || !FLOOR[r][c];
+  const roomAt = (x, z) => {
+    const c = Math.round(x / CS + 24.5), r = Math.round(z / CS + 13);
+    if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return null;
+    const v = FLOOR[r][c];
+    return (v && v !== '.') ? v : null;
+  };
+
+  // nav graph over floor cells
+  const NAV_NODES = [];
+  const navIndex = Array.from({ length: ROWS }, () => Array(COLS).fill(-1));
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (FLOOR[r][c]) { navIndex[r][c] = NAV_NODES.length; NAV_NODES.push({ c, r, x: wx(c), z: wz(r) }); }
+  }
+  const NAV_ADJ = NAV_NODES.map(n => {
+    const out = [];
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (const [dc, dr] of dirs) {
+      const c = n.c + dc, r = n.r + dr;
+      if (c >= 0 && r >= 0 && c < COLS && r < ROWS && navIndex[r][c] >= 0) out.push(navIndex[r][c]);
+    }
+    return out;
+  });
+  const nearestNav = (x, z) => {
+    const c = Math.round(x / CS + 24.5), r = Math.round(z / CS + 13);
+    let bi = -1, bd = 1e9;
+    for (let rr = Math.max(0, r - 2); rr <= Math.min(ROWS - 1, r + 2); rr++)
+      for (let cc = Math.max(0, c - 2); cc <= Math.min(COLS - 1, c + 2); cc++) {
+        const i = navIndex[rr][cc];
+        if (i < 0) continue;
+        const d = dist2(x, z, NAV_NODES[i].x, NAV_NODES[i].z);
+        if (d < bd) { bd = d; bi = i; }
+      }
+    return bi;
+  };
+  function bfsPath(from, to) {
+    if (from === to) return [from];
+    const prev = new Array(NAV_NODES.length).fill(-1);
+    const q = [from]; prev[from] = from;
+    while (q.length) {
+      const cur = q.shift();
+      if (cur === to) break;
+      for (const nxt of NAV_ADJ[cur]) if (prev[nxt] === -1) { prev[nxt] = cur; q.push(nxt); }
+    }
+    if (prev[to] === -1) return null;
+    const path = [to];
+    let cur = to;
+    while (cur !== from) { cur = prev[cur]; path.push(cur); }
+    return path.reverse();
+  }
+
+  const roomLabel = key => ROOMS.find(r => r.key === key)?.name || key;
+
+  /* =====================================================================
+     RENDERER / SCENE
+  ===================================================================== */
+  let renderer, scene, camera, hemi, dirLight, clock;
+  const LIGHT_PANELS = [];
+  const PROP_ANIM = [];
+  const TASK_MESHES = {};
+  const VENT_MESHES = {};
+  let EMERGENCY_MESH = null;
+  let adminTableScreen = null;
+
+  function initThree() {
+    const canvas = document.getElementById('c');
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, IS_TOUCH ? 1.6 : 2));
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.shadowMap.enabled = !IS_TOUCH;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.12;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x05060c);
+    scene.fog = new THREE.Fog(0x05060c, 18, 60);
+
+    camera = new THREE.PerspectiveCamera(72, innerWidth / innerHeight, 0.1, 200);
+    camera.position.set(SPAWN.x, 1.62, SPAWN.z);
+
+    // soft image-based lighting for that glossy "Among Us 3D" look
+    try {
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      pmrem.dispose();
+    } catch (e) { console.warn('env lighting unavailable', e); }
+
+    hemi = new THREE.HemisphereLight(0xaecbff, 0x141821, 0.85);
+    scene.add(hemi);
+
+    dirLight = new THREE.DirectionalLight(0xfff4e6, 1.0);
+    dirLight.position.set(24, 34, 10);
+    dirLight.castShadow = !IS_TOUCH;
+    dirLight.shadow.mapSize.set(2048, 2048);
+    dirLight.shadow.camera.left = -60; dirLight.shadow.camera.right = 60;
+    dirLight.shadow.camera.top = 50; dirLight.shadow.camera.bottom = -50;
+    dirLight.shadow.camera.near = 1; dirLight.shadow.camera.far = 120;
+    dirLight.shadow.bias = -0.0006;
+    scene.add(dirLight);
+
+    // a few accent lights (kept subtle; environment does the heavy lifting)
+    const accent = (color, x, y, z, intensity, dist) => {
+      const p = new THREE.PointLight(color, intensity, dist, 2);
+      p.position.set(x, y, z); scene.add(p); return p;
+    };
+    accent(0x38c8ff, EMERGENCY.x, 2.9, EMERGENCY.z, 26, 26);   // cafeteria
+    accent(0xff5a6b, 35, 2.6, -14, 30, 30);                     // reactor
+    accent(0x4d9bff, 43, 2.6, 21, 22, 24);                      // navigation
+    accent(0xffd23e, 11, 2.6, 21, 18, 22);                      // electrical
+
+    clock = new THREE.Clock();
+  }
+
+  function makeCanvasTexture(draw, w = 256, h = 256) {
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const ctx = cv.getContext('2d'); draw(ctx, w, h);
+    const t = new THREE.CanvasTexture(cv);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }
+
+  /* =====================================================================
+     CREWMATE MODEL
+  ===================================================================== */
+  function buildCrewmate(hex, shade = 0) {
+    const g = new THREE.Group();
+    const col = new THREE.Color(hex);
+    const darker = col.clone().multiplyScalar(0.72);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.52, metalness: 0.18 });
+    const shadeMat = new THREE.MeshStandardMaterial({ color: darker, roughness: 0.5, metalness: 0.25 });
+
+    const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.46, 0.46, 6, 20), bodyMat);
+    torso.position.y = 0.86; torso.scale.set(1, 1.08, 0.94);
+    torso.castShadow = true; g.add(torso);
+
+    const legGeo = new THREE.CapsuleGeometry(0.13, 0.15, 4, 10);
+    const legL = new THREE.Mesh(legGeo, shadeMat); legL.position.set(-0.17, 0.27, 0); legL.castShadow = true; g.add(legL);
+    const legR = new THREE.Mesh(legGeo, shadeMat); legR.position.set(0.17, 0.27, 0); legR.castShadow = true; g.add(legR);
+
+    const pack = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.78, 0.34), shadeMat);
+    pack.position.set(0, 1.0, -0.36); pack.rotation.x = -0.06; pack.castShadow = true; g.add(pack);
+
+    // visor — translucent glossy band
+    const visor = new THREE.Group();
+    const glass = new THREE.Mesh(
+      new THREE.SphereGeometry(0.34, 24, 18),
+      new THREE.MeshPhysicalMaterial({ color: 0x8fd6ff, metalness: 1.0, roughness: 0.06, transparent: true, opacity: 0.62, clearcoat: 1 })
+    );
+    glass.scale.set(1.55, 0.72, 0.55);
+    glass.position.set(0, 1.22, 0.33);
+    visor.add(glass);
+    const rim = new THREE.Mesh(
+      new THREE.TorusGeometry(0.34, 0.045, 10, 30),
+      new THREE.MeshStandardMaterial({ color: 0x1b2333, roughness: 0.4, metalness: 0.6 })
+    );
+    rim.scale.set(1.55, 0.72, 0.55); rim.position.set(0, 1.22, 0.30);
+    visor.add(rim);
+    const glint = new THREE.Mesh(
+      new THREE.SphereGeometry(0.16, 10, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 })
+    );
+    glint.scale.set(1.1, 0.32, 0.1); glint.position.set(-0.14, 1.33, 0.5);
+    visor.add(glint);
+    visor.children.forEach(c => c.castShadow = false);
+    g.add(visor);
+
+    // hat (cosmetic — toggled per-player in lobby? default none)
+    const bone = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.09, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0xf2f5f7, roughness: 0.6 }));
+    bone.position.set(0, 1.5, 0.2); bone.visible = false; g.add(bone);
+
+    g.userData = { legL, legR, pack, visor, torso, bone, baseY: g.position.y };
+    return g;
+  }
+
+  function makeNameSprite(name, cssColor, dead = false) {
+    const t = makeCanvasTexture((ctx, w, h) => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = cssColor; ctx.strokeStyle = 'rgba(0,0,0,.65)'; ctx.lineWidth = 6;
+      const r = 18;
+      roundRect(ctx, 12, 10, w - 24, h - 20, r); ctx.fill(); ctx.stroke();
+      ctx.font = '700 30px "Baloo 2","Varela Round",sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = 'rgba(0,0,0,.55)';
+      ctx.fillText(name, w / 2 + 1.5, (h) / 2 + 2.5);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(name, w / 2, h / 2);
+      if (dead) { ctx.font = '26px sans-serif'; ctx.fillText('💀', w - 30, 30); }
+    }, 256, 96);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: false }));
+    sp.scale.set(1.35, 0.5, 1);
+    sp.renderOrder = 999;
+    return sp;
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+
+  /* =====================================================================
+     SHIP GEOMETRY
+  ===================================================================== */
+  function buildShip() {
+    const ship = new THREE.Group();
+    ship.name = 'ship';
+
+    // ---- floor (instanced, per-room tint) ----
+    const floorCells = [];
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (FLOOR[r][c]) floorCells.push({ c, r });
+    const floorGeo = new THREE.BoxGeometry(CS, 0.16, CS);
+    const floorMat = new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.32 });
+    const floor = new THREE.InstancedMesh(floorGeo, floorMat, floorCells.length);
+    floor.receiveShadow = true;
+    floorCells.forEach((fc, i) => {
+      const m = new THREE.Matrix4();
+      m.makeTranslation(wx(fc.c), -0.08, wz(fc.r));
+      floor.setMatrixAt(i, m);
+      const base = FLOOR[fc.r][fc.c];
+      const tint = base === '.' ? 0x7d8a9c : new THREE.Color(ROOM_ACCENT[base]).lerp(new THREE.Color(0x9aa6b6), 0.82);
+      floor.setColorAt(i, tint);
+    });
+    floor.instanceMatrix.needsUpdate = true;
+    if (floor.instanceColor) floor.instanceColor.needsUpdate = true;
+    ship.add(floor);
+
+    // ---- walls (instanced segments) ----
+    const walls = [];
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      if (!FLOOR[r][c]) continue;
+      const x = wx(c), z = wz(r);
+      if (solidAt(c + 1, r)) walls.push([x + CS / 2, WALL_H / 2, z, 0.22, WALL_H, CS]);
+      if (solidAt(c - 1, r)) walls.push([x - CS / 2, WALL_H / 2, z, 0.22, WALL_H, CS]);
+      if (solidAt(c, r + 1)) walls.push([x, WALL_H / 2, z + CS / 2, CS, WALL_H, 0.22]);
+      if (solidAt(c, r - 1)) walls.push([x, WALL_H / 2, z - CS / 2, CS, WALL_H, 0.22]);
+    }
+    const wallGeo = new THREE.BoxGeometry(1, 1, 1);
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x33415c, roughness: 0.62, metalness: 0.3 });
+    const wallInst = new THREE.InstancedMesh(wallGeo, wallMat, walls.length);
+    wallInst.receiveShadow = true;
+    walls.forEach(([x, y, z, sx, sy, sz], i) => {
+      const m = new THREE.Matrix4();
+      m.makeScale(sx, sy, sz); m.setPosition(x, y, z);
+      wallInst.setMatrixAt(i, m);
+    });
+    wallInst.instanceMatrix.needsUpdate = true;
+    ship.add(wallInst);
+
+    // ---- ceiling + light panels ----
+    const ceilGeo = new THREE.BoxGeometry(CS, 0.16, CS);
+    const ceilMat = new THREE.MeshStandardMaterial({ color: 0x1a2131, roughness: 0.8, metalness: 0.3 });
+    const ceil = new THREE.InstancedMesh(ceilGeo, ceilMat, floorCells.length);
+    floorCells.forEach((fc, i) => {
+      const m = new THREE.Matrix4();
+      m.makeTranslation(wx(fc.c), CEIL_H, wz(fc.r));
+      ceil.setMatrixAt(i, m);
+    });
+    ceil.instanceMatrix.needsUpdate = true;
+    ship.add(ceil);
+
+    // emissive light panels under the ceiling, one per room
+    for (const R of ROOMS) {
+      const w = R.w - 3, d = R.d - 3;
+      const panel = new THREE.Mesh(
+        new THREE.PlaneGeometry(w, d),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xdfeaff, emissiveIntensity: 1.15, roughness: 0.4 })
+      );
+      panel.rotation.x = Math.PI / 2;
+      panel.position.set(R.x, CEIL_H - 0.1, R.z);
+      ship.add(panel); LIGHT_PANELS.push(panel);
+      // colored trim ring
+      const trim = new THREE.Mesh(
+        new THREE.PlaneGeometry(w + 0.5, d + 0.5),
+        new THREE.MeshBasicMaterial({ color: ROOM_ACCENT[R.key] })
+      );
+      trim.rotation.x = Math.PI / 2;
+      trim.position.set(R.x, CEIL_H - 0.16, R.z);
+      trim.material.transparent = true; trim.material.opacity = 0.0; // hidden until needed (kept for future)
+      ship.add(trim);
+    }
+
+    // ---- vents ----
+    const grilleTex = makeCanvasTexture((ctx, w, h) => {
+      ctx.fillStyle = '#0d1119'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#2c3648';
+      for (let y = 12; y < h; y += 16) ctx.fillRect(8, y, w - 16, 8);
+    }, 128, 128);
+    for (const R of ROOMS) {
+      const off = VENT_OFFSETS[R.key];
+      if (!off) continue;
+      const vx = R.x + off[0] * 1.6, vz = R.z + off[1] * 1.6;
+      const vent = new THREE.Mesh(new THREE.PlaneGeometry(1.15, 1.15), new THREE.MeshStandardMaterial({ map: grilleTex, color: 0x9fb0c8, roughness: 0.5, metalness: 0.5 }));
+      vent.rotation.x = -Math.PI / 2;
+      vent.position.set(vx, 0.02, vz);
+      vent.userData.isVent = true; vent.userData.room = R.key;
+      ship.add(vent);
+      VENT_MESHES[R.key] = { mesh: vent, x: vx, z: vz };
+    }
+
+    ship.add(buildProps());
+    scene.add(ship);
+  }
+
+  function buildProps() {
+    const props = new THREE.Group();
+    const metal = new THREE.MeshStandardMaterial({ color: 0x3a4760, roughness: 0.5, metalness: 0.55 });
+    const dark = new THREE.MeshStandardMaterial({ color: 0x232c40, roughness: 0.6, metalness: 0.4 });
+    const glow = (color, intensity = 1.3) => new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: color, emissiveIntensity: intensity, roughness: 0.3 });
+    const add = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0, cast = true) => {
+      const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz);
+      if (cast) m.castShadow = true; m.receiveShadow = true; props.add(m); return m;
+    };
+
+    // ----- cafeteria table + emergency button -----
+    add(new THREE.CylinderGeometry(0.26, 0.3, 0.62, 14), metal, EMERGENCY.x, 0.31, EMERGENCY.z);
+    const tableTop = add(new THREE.CylinderGeometry(2.5, 2.7, 0.2, 26), dark, EMERGENCY.x, 0.66, EMERGENCY.z);
+    add(new THREE.CylinderGeometry(2.0, 2.0, 0.06, 26), glow(0x1b3a4f, 0.8), EMERGENCY.x, 0.78, EMERGENCY.z);
+    const emb = add(new THREE.CylinderGeometry(0.24, 0.24, 0.14, 20), glow(0xff2b3a, 2.2), EMERGENCY.x, 0.84, EMERGENCY.z);
+    add(new THREE.TorusGeometry(0.5, 0.04, 8, 24), glow(0xff2b3a, 1.6), EMERGENCY.x, 0.9, EMERGENCY.z, Math.PI / 2);
+    EMERGENCY_MESH = emb;
+    const ring = add(new THREE.TorusGeometry(0.55, 0.03, 8, 28), glow(0xff2b3a, 1.6), EMERGENCY.x, 0.9, EMERGENCY.z, Math.PI / 2);
+    PROP_ANIM.push({ obj: ring, fn: (o, t) => { o.scale.setScalar(1 + Math.sin(t * 4) * 0.15); } });
+
+    // ----- reactor core -----
+    const core = add(new THREE.CylinderGeometry(1.15, 1.3, 2.6, 22), metal, 35, 1.4, -14);
+    const coreGlow = add(new THREE.TorusGeometry(1.25, 0.09, 10, 32), glow(0x37f0ff, 2.4), 35, 1.5, -14);
+    PROP_ANIM.push({ obj: coreGlow, fn: (o, t) => { o.rotation.z = t * 1.4; o.scale.setScalar(1 + Math.sin(t * 2.5) * 0.06); } });
+    add(new THREE.CylinderGeometry(0.5, 0.6, 0.4, 18), glow(0x37f0ff, 1.2), 35, 2.9, -14);
+
+    // ----- engines (upper + lower) thrusters -----
+    for (const R of [ROOMS.find(r => r.key === 'U'), ROOMS.find(r => r.key === 'L')]) {
+      add(new THREE.CylinderGeometry(0.9, 0.7, 2.2, 20), metal, R.x, 1.2, R.z + R.d / 2 - 1.2);
+      const thr = add(new THREE.CylinderGeometry(0.55, 0.7, 0.6, 18), glow(0xff9a3d, 1.8), R.x, 1.1, R.z + R.d / 2 - 0.3);
+      PROP_ANIM.push({ obj: thr, fn: (o, t) => { o.material.emissiveIntensity = 1.4 + Math.sin(t * 6) * 0.6; } });
+    }
+
+    // ----- medbay scanner -----
+    add(new THREE.BoxGeometry(2.3, 0.4, 1.15), dark, -15, 0.45, -12);
+    const scanRing = add(new THREE.TorusGeometry(0.7, 0.05, 8, 24), glow(0x3ddbd0, 1.8), -15, 1.1, -12);
+    PROP_ANIM.push({ obj: scanRing, fn: (o, t) => { o.rotation.x = t * 2; o.position.y = 1.1 + Math.sin(t * 2) * 0.18; } });
+
+    // ----- security monitors -----
+    for (let i = 0; i < 3; i++) {
+      add(new THREE.BoxGeometry(0.6, 0.45, 0.12), glow(0x8f7bff, 1.4), 12 + i * 1.4, 1.35, -19.5);
+    }
+    add(new THREE.BoxGeometry(3.6, 0.5, 1.2), dark, 13.4, 0.4, -19.3);
+
+    // ----- navigation console + steering + window -----
+    add(new THREE.BoxGeometry(3.2, 0.7, 1.4), dark, 43, 0.5, 23.5);
+    const wheel = add(new THREE.TorusGeometry(0.55, 0.07, 10, 28), metal, 43, 1.1, 23.2, Math.PI / 2.6, 0, 0);
+    add(new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8), metal, 43, 0.95, 23.2, Math.PI / 2.6);
+    add(new THREE.BoxGeometry(4.4, 2.2, 0.18), new THREE.MeshStandardMaterial({ color: 0x0b1420, roughness: 0.4, metalness: 0.6 }), 48, 1.6, 15.75);
+    const navWin = add(new THREE.PlaneGeometry(4.0, 2.0), new THREE.MeshBasicMaterial({ map: makeStars(256, 128), color: 0x9fc4ff }), 48, 1.6, 15.9);
+    navWin.rotation.y = Math.PI; navWin.userData.window = true;
+
+    // ----- weapons cannons -----
+    add(new THREE.BoxGeometry(2.4, 0.6, 1.0), dark, 20, 0.5, 3);
+    const c1 = add(new THREE.CylinderGeometry(0.28, 0.34, 0.8, 14), metal, 19.2, 1.2, 3, Math.PI / 2);
+    const c2 = add(new THREE.CylinderGeometry(0.28, 0.34, 0.8, 14), metal, 20.8, 1.2, 3, Math.PI / 2);
+    [c1, c2].forEach(c => { const g = add(new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6), glow(0xff5a6b, 1.6), c.position.x, c.position.y, c.position.z - 0.7); });
+
+    // ----- shields -----
+    const shield = add(new THREE.CylinderGeometry(1.0, 1.0, 0.16, 6), glow(0x5ae4a0, 1.7), 43, 1.5, 5.8, Math.PI / 2);
+    shield.rotation.y = Math.PI / 6;
+
+    // ----- storage fuel tank -----
+    add(new THREE.CylinderGeometry(0.9, 0.9, 2.1, 18), new THREE.MeshStandardMaterial({ color: 0xb78a4a, roughness: 0.5, metalness: 0.5 }), -24, 1.1, 19, 0, 0, Math.PI / 2);
+    add(new THREE.BoxGeometry(1.0, 1.0, 1.0), dark, -14, 0.5, 22);
+    add(new THREE.BoxGeometry(0.8, 0.8, 0.8), metal, -15, 1.2, 22);
+
+    // ----- communications dish -----
+    add(new THREE.CylinderGeometry(0.12, 0.18, 2.2, 10), metal, -4, 1.2, 19);
+    add(new THREE.SphereGeometry(0.8, 16, 12), metal, -4, 2.4, 19, 0, 0, 0);
+    add(new THREE.BoxGeometry(2.2, 0.6, 1.0), dark, -4, 0.5, 19);
+
+    // ----- electrical breaker + wires -----
+    add(new THREE.BoxGeometry(2.6, 1.4, 0.4), dark, 8, 1.0, 24.6);
+    for (let i = 0; i < 6; i++) add(new THREE.SphereGeometry(0.09, 8, 8), glow(0xffd23e, 1.4), 7 + i * 0.4, 1.0, 24.4);
+    const wireCols = [0xff3b4d, 0x38f0ff, 0x3ce37f, 0xffd23e];
+    for (let i = 0; i < 4; i++) add(new THREE.CylinderGeometry(0.05, 0.05, 1.6, 6), new THREE.MeshStandardMaterial({ color: wireCols[i], roughness: 0.6 }), 4 + i * 0.3, 0.6, 24.8, 0, 0, 0.3);
+
+    // ----- o2 filter + leaves -----
+    add(new THREE.BoxGeometry(2.4, 1.6, 0.6), dark, 24, 1.0, 24.2);
+    add(new THREE.CylinderGeometry(0.5, 0.5, 0.8, 12), glow(0x5ae4a0, 0.9), 24, 0.9, 22);
+    for (let i = 0; i < 7; i++) add(new THREE.SphereGeometry(0.12, 8, 8), new THREE.MeshStandardMaterial({ color: 0x3ce37f, roughness: 0.7 }), 22 + rnd(-1.2, 1.2), 0.3 + rnd(0, 0.5), 22 + rnd(-1, 1));
+
+    // ----- admin table (map) -----
+    add(new THREE.CylinderGeometry(0.3, 0.36, 0.7, 12), metal, -35, 0.35, 2);
+    const adminScreen = makeAdminTexture();
+    const adminTop = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 1.9), new THREE.MeshStandardMaterial({ map: adminScreen, emissive: 0xffffff, emissiveMap: adminScreen, emissiveIntensity: 0.9, roughness: 0.4 }));
+    adminTop.rotation.x = -Math.PI / 2;
+    adminTop.position.set(-35, 0.75, 2);
+    props.add(adminTop);
+    adminTableScreen = adminTop;
+    add(new THREE.CylinderGeometry(1.5, 1.7, 0.12, 24), dark, -35, 0.72, 2);
+
+    // ----- task stations -----
+    for (const ts of TASK_STATIONS) {
+      const group = new THREE.Group();
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.7), dark);
+      base.position.y = 0.45; group.add(base);
+      const screen = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.5, 0.08), glow(0x2fe0ff, 1.1));
+      screen.position.set(0, 1.05, 0.36); group.add(screen);
+      const p = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), new THREE.MeshBasicMaterial({ map: makeIconTexture(ts) }));
+      p.position.set(0, 1.06, 0.41); group.add(p);
+      group.position.set(ts.x, 0, ts.z);
+      // pointer arrow (hidden by default; shown only for owner's tasks)
+      const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.5, 4), new THREE.MeshBasicMaterial({ color: 0xffd23e }));
+      arrow.rotation.x = Math.PI; arrow.position.y = 2.0;
+      arrow.visible = false; group.add(arrow);
+      props.add(group);
+      TASK_MESHES[ts.id] = { group, screen, arrow, x: ts.x, z: ts.z, ts };
+    }
+
+    // window in cafeteria (north wall) showing stars
+    const cafeWin = add(new THREE.PlaneGeometry(4.4, 2.0), new THREE.MeshBasicMaterial({ map: makeStars(256, 128), color: 0x9fc4ff }), -5, 1.8, -3.6);
+    cafeWin.rotation.y = Math.PI; cafeWin.userData.window = true;
+    add(new THREE.BoxGeometry(4.8, 2.4, 0.18), dark, -5, 1.8, -3.8);
+
+    return props;
+  }
+
+  function makeStars(w, h) {
+    const t = makeCanvasTexture((ctx) => {
+      ctx.fillStyle = '#02040a'; ctx.fillRect(0, 0, w, h);
+      for (let i = 0; i < 180; i++) {
+        const a = Math.random();
+        ctx.fillStyle = a > 0.9 ? '#cfe6ff' : a > 0.5 ? '#9db8ff' : '#ffffff';
+        ctx.globalAlpha = 0.25 + Math.random() * 0.75;
+        const s = Math.random() < 0.85 ? 1 : 2;
+        ctx.fillRect(Math.random() * w, Math.random() * h, s, s);
+      }
+      ctx.globalAlpha = 1;
+    }, w, h);
+    return t;
+  }
+
+  function makeIconTexture(ts) {
+    return makeCanvasTexture((ctx, w, h) => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = 'rgba(6,20,30,.85)'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#7ee8ff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '44px sans-serif';
+      ctx.fillText(ICON_FOR(ts), w / 2, h / 2);
+    }, 64, 64);
+  }
+  const ICON_FOR = ts => ({
+    swipe: '🪪', download: '⬇️', upload: '⬆️', calib: '⚙️', leaves: '🍃', ventc: '💨',
+    asteroids: '☄️', divert: '⚡', accept: '⚡', chute: '🗑️', garbage1: '🗑️', garbage2: '🗑️',
+    fuel1: '⛽', fuel2: '⛽', sample: '🧪', scan: '🩺', shields: '🛡️', steer: '🧭',
+    reactor: '☢️', manifolds: '🔓', align: '📊', chart: '🗺️', wiresE: '🔌', wiresS: '🔌', wiresA: '🔌',
+  })[ts.id] || '📋';
+
+  function makeAdminTexture() {
+    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 192;
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /* =====================================================================
+     GAME STATE
+  ===================================================================== */
+  const SETTINGS = {
+    players: 8, impostors: 2,
+    killCooldown: 25, emergencyCooldown: 15, emergencyMeetings: 1,
+    taskCount: 6, discussionTime: 60, voteTime: 30,
+    playerSpeed: 4.4, botSpeed: 3.7,
+    crewVision: 1.0,
+  };
+
+  const G = {
+    state: 'menu',                 // menu | lobby | playing | meeting | paused | over
+    players: [],
+    localId: 0,
+    bodies: [],                    // dead bodies on the floor
+    sabotage: { reactor: false, o2: false, lights: false, comms: false },
+    sabotageCooldown: 0,
+    killCooldown: 0,
+    emergencyCooldown: 0,
+    emergencyUsed: 0,
+    crewTaskProgress: 0,           // 0..1
+    totalCrewTasks: 0,
+    completedCrewTasks: 0,
+    lightsOn: true,
+    time: 0,
+    annTimer: 0,
+    annText: '',
+    visualTasks: true,
+  };
+
+  const TASK_CHAINS = [
+    { key:'swipe',    name:'Swipe Card',           stages:['swipe'],                          visual:false },
+    { key:'wires',    name:'Fix Wiring',           stages:['wiresE','wiresS','wiresA'],        visual:false },
+    { key:'download', name:'Download/Upload Data', stages:['download','upload'],               visual:false },
+    { key:'calib',    name:'Calibrate Distributor',stages:['calib'],                          visual:false },
+    { key:'leaves',   name:'Clean O2 Filter',      stages:['leaves'],                         visual:true  },
+    { key:'asteroids',name:'Clear Asteroids',      stages:['asteroids'],                      visual:true  },
+    { key:'divert',   name:'Divert Power',         stages:['divert','accept'],                 visual:false },
+    { key:'fuel',     name:'Fuel Engines',         stages:['fuel1','fuel2'],                   visual:false },
+    { key:'chute',    name:'Empty Chute',          stages:['chute'],                          visual:true  },
+    { key:'garbage',  name:'Empty Garbage',        stages:['garbage1','garbage2'],             visual:true  },
+    { key:'sample',   name:'Inspect Sample',       stages:['sample'],                         visual:false },
+    { key:'scan',     name:'Submit Scan',          stages:['scan'],                           visual:true  },
+    { key:'shields',  name:'Prime Shields',        stages:['shields'],                        visual:true  },
+    { key:'steer',    name:'Stabilize Steering',   stages:['steer'],                          visual:false },
+    { key:'reactor',  name:'Start Reactor',        stages:['reactor'],                        visual:false },
+    { key:'manifolds',name:'Unlock Manifolds',     stages:['manifolds'],                      visual:false },
+    { key:'align',    name:'Align Engine Output',  stages:['align'],                          visual:false },
+    { key:'chart',    name:'Chart Course',         stages:['chart'],                          visual:false },
+    { key:'ventc',    name:'Clean Vent',           stages:['ventc'],                          visual:false },
+  ];
+
+  function assignTasks(isImpostor) {
+    const shuffled = [...TASK_CHAINS].sort(() => Math.random() - 0.5);
+    const picked = shuffled.slice(0, SETTINGS.taskCount);
+    return picked.map(c => ({
+      key: c.key, name: c.name, visual: c.visual, done: false,
+      stages: c.stages.map(s => ({ id: s, done: false })),
+      stageIdx: 0,
+    }));
+  }
+
+  function makeBody(colorHex) {
+    const g = buildCrewmate(colorHex, 0);
+    // lay the body down
+    g.rotation.x = -Math.PI / 2;
+    g.rotation.z = rnd(-0.2, 0.2);
+    g.rotation.y = rnd(-Math.PI, Math.PI);
+    g.scale.setScalar(1.0);
+    g.traverse(o => { if (o.isMesh) { o.material = o.material.clone ? o.material.clone() : o.material; o.material.transparent = true; o.material.opacity = 1; } });
+    // desaturate slightly (dead)
+    g.traverse(o => { if (o.isMesh && o.material && o.material.color) { o.material.color.multiplyScalar(0.82); o.material.color.offsetHSL(0, -0.25, -0.08); } });
+    const bone = g.userData.bone; if (bone) { bone.visible = true; }
+    g.userData.isBody = true;
+    return g;
+  }
+
+  /* =====================================================================
+     PLAYER SETUP
+  ===================================================================== */
+  function initPlayers() {
+    // clear old models
+    for (const p of G.players) { if (p.model) scene.remove(p.model); if (p.sprite) scene.remove(p.sprite); }
+    for (const b of G.bodies) scene.remove(b.group);
+    G.bodies = [];
+    G.players = [];
+    G.crewTaskProgress = 0; G.completedCrewTasks = 0; G.totalCrewTasks = 0;
+    G.sabotage = { reactor: false, o2: false, lights: false, comms: false };
+    G.sabotageCooldown = 0; G.killCooldown = 0; G.emergencyCooldown = 0; G.emergencyUsed = 0;
+    G.lightsOn = true; G.time = 0; G.annText = ''; G.annTimer = 0;
+
+    const n = SETTINGS.players;
+    const pool = COLORS.filter(c => c.id !== lobbyColor).sort(() => Math.random() - 0.5);
+    // choose impostors
+    const roleChoice = lobbyRole(); // 'crew' | 'imp' | 'random'
+    const impSet = new Set();
+    while (impSet.size < SETTINGS.impostors) impSet.add(rndi(0, n - 1));
+    let localId = 0;
+    if (roleChoice === 'imp') {
+      // ensure local is impostor
+      impSet.delete(0); const others = []; for (let i = 0; i < n; i++) if (!impSet.has(i)) others.push(i);
+      impSet.clear(); impSet.add(0);
+      while (impSet.size < SETTINGS.impostors) impSet.add(others[rndi(0, others.length - 1)]);
+    } else if (roleChoice === 'crew') {
+      impSet.delete(0);
+      while (impSet.size < SETTINGS.impostors) { const v = rndi(1, n - 1); impSet.add(v); }
+    }
+
+    const angleStep = (Math.PI * 2) / n;
+    for (let i = 0; i < n; i++) {
+      const isImp = impSet.has(i);
+      const p = {
+        id: i, name: i === 0 ? (nameInput.value.trim() || 'You') : BOT_NAMES[(i - 1) % BOT_NAMES.length],
+        colorId: i === 0 ? lobbyColor : pool[(i - 1) % pool.length].id,
+        isImpostor: isImp, alive: true, isLocal: i === 0,
+        pos: { x: SPAWN.x + Math.cos(angleStep * i) * 2.2, z: SPAWN.z + Math.sin(angleStep * i) * 2.2 },
+        yaw: i === 0 ? Math.PI : -Math.PI / 2 + angleStep * i, pitch: 0, bob: rnd(0, 6), moving: false,
+        model: null, sprite: null,
+        brain: isImp ? 'imp' : 'crew', path: [], pathIdx: 0, state: 'idle', stateTimer: 0,
+        targetX: 0, targetZ: 0, wanderIdx: -1,
+        tasks: [], taskIdx: 0,
+        killTimer: isImp ? 8 : 0, sabTimer: rnd(18, 30), reportTimer: rnd(2, 3),
+        emergencyUsed: 0, suspicion: new Array(n).fill(0),
+        lastRoom: 'C',
+      };
+      if (!isImp) {
+        p.tasks = assignTasks(false);
+        G.totalCrewTasks += p.tasks.length;
+      } else if (i === 0) {
+        p.tasks = assignTasks(true); // fake list for impostor's HUD
+      }
+      if (i !== 0) {
+        p.model = buildCrewmate(colorOf(p.colorId).hex);
+        p.sprite = makeNameSprite(p.name, colorOf(p.colorId).css);
+        p.model.position.set(p.pos.x, 0, p.pos.z);
+        p.sprite.position.set(p.pos.x, 2.0, p.pos.z);
+        scene.add(p.model); scene.add(p.sprite);
+      }
+      G.players.push(p);
+    }
+    localId = 0;
+    G.localId = 0;
+  }
+
+  const BOT_NAMES = ['Nova','Pixel','Wisp','Clank','Byte','Nimbus','Echo','Ziggy','Nova2','Pip','Fizz','Luna','Moss','Rex','Dot','Kip'];
+
+  let nameInput, lobbyRoleSelection = 'random';
+  function lobbyRole() { return lobbyRoleSelection; }
+
+  /* =====================================================================
+     COLLISION + MOVEMENT
+  ===================================================================== */
+  function collide(x, z, r) {
+    const c0 = Math.floor((x - r) / CS + 24.5), c1 = Math.floor((x + r) / CS + 24.5);
+    const r0 = Math.floor((z - r) / CS + 13), r1 = Math.floor((z + r) / CS + 13);
+    for (let rr = r0; rr <= r1; rr++) for (let cc = c0; cc <= c1; cc++) {
+      if (!solidAt(cc, rr)) continue;
+      const minx = wx(cc) - CS / 2, maxx = wx(cc) + CS / 2, minz = wz(rr) - CS / 2, maxz = wz(rr) + CS / 2;
+      const cx = clamp(x, minx, maxx), cz = clamp(z, minz, maxz);
+      let dx = x - cx, dz = z - cz; const d2 = dx * dx + dz * dz;
+      if (d2 >= r * r) continue;
+      if (d2 < 1e-9) {
+        const pl = x - minx, pr = maxx - x, pt = z - minz, pb = maxz - z;
+        const m = Math.min(pl, pr, pt, pb);
+        if (m === pl) x = minx - r; else if (m === pr) x = maxx + r; else if (m === pt) z = minz - r; else z = maxz + r;
+      } else {
+        const d = Math.sqrt(d2), push = (r - d) / d;
+        x += dx * push; z += dz * push;
+      }
+    }
+    return { x, z };
+  }
+
+  function hasLOS(x1, z1, x2, z2) {
+    const dx = x2 - x1, dz = z2 - z1;
+    const d = Math.hypot(dx, dz);
+    const steps = Math.max(1, Math.ceil(d / 0.4));
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const c = Math.round((x1 + dx * t) / CS + 24.5), r = Math.round((z1 + dz * t) / CS + 13);
+      if (solidAt(c, r)) return false;
+    }
+    return true;
+  }
+
+  function updateLocal(dt) {
+    const p = G.players[G.localId];
+    const busy = minigameHost.classList.contains('open');
+    const inp = busy ? { x: 0, y: 0 } : Input.readMove();
+    p.moving = Math.hypot(inp.x, inp.y) > 0.02;
+    const speed = SETTINGS.playerSpeed;
+    if (p.moving) {
+      const sy = Math.sin(p.yaw), cy = Math.cos(p.yaw);
+      // forward = -z when yaw=0
+      const fx = -sy, fz = -cy;
+      const rx = cy, rz = -sy;
+      let vx = (fx * -inp.y + rx * inp.x) * speed;
+      let vz = (fz * -inp.y + rz * inp.x) * speed;
+      p.pos.x += vx * dt; p.pos.z += vz * dt;
+    }
+    const res = collide(p.pos.x, p.pos.z, 0.4);
+    p.pos.x = res.x; p.pos.z = res.z;
+    if (!busy) {
+      const lk = Input.consumeLook();
+      p.yaw -= lk.x * 0.0022;
+      p.pitch = clamp(p.pitch - lk.y * 0.0022, -1.45, 1.45);
+    }
+    // head bob
+    p.bob += dt * (p.moving ? 9 : 4);
+    camera.position.set(p.pos.x, 1.62 + Math.sin(p.bob) * (p.moving ? 0.045 : 0.015), p.pos.z);
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y = p.yaw; camera.rotation.x = p.pitch;
+    p.lastRoom = roomAt(p.pos.x, p.pos.z) || p.lastRoom;
+  }
+
+  /* =====================================================================
+     BOT AI
+  ===================================================================== */
+  function updateBots(dt) {
+    const local = G.players[G.localId];
+    for (const p of G.players) {
+      if (p.isLocal || !p.alive) continue;
+      // --- path-following movement ---
+      if (p.path && p.pathIdx < p.path.length) {
+        const node = NAV_NODES[p.path[p.pathIdx]];
+        const dx = node.x - p.pos.x, dz = node.z - p.pos.z;
+        const d = Math.hypot(dx, dz);
+        if (d < 0.35) { p.pathIdx++; }
+        else {
+          p.moving = true;
+          const sp = SETTINGS.botSpeed * dt;
+          p.pos.x += (dx / d) * sp; p.pos.z += (dz / d) * sp;
+          p.yaw = Math.atan2(-dx, -dz);
+        }
+        const res = collide(p.pos.x, p.pos.z, 0.4);
+        p.pos.x = res.x; p.pos.z = res.z;
+      } else { p.moving = false; }
+
+      p.lastRoom = roomAt(p.pos.x, p.pos.z) || p.lastRoom;
+      if (p.model) {
+        p.model.position.set(p.pos.x, 0, p.pos.z);
+        p.model.rotation.y = p.yaw;
+        p.sprite.position.set(p.pos.x, 2.02, p.pos.z);
+        animateModel(p, dt);
+      }
+
+      if (p.brain === 'crew') botCrew(p, dt);
+      else botImp(p, dt, local);
+    }
+    // ghosts keep completing tasks / sabotaging invisibly
+    for (const p of G.players) {
+      if (p.isLocal || p.alive) continue;
+      if (p.brain === 'crew') { p.stateTimer -= dt; if (p.stateTimer <= 0 && p.taskIdx < p.tasks.length) { p.tasks[p.taskIdx].done = true; p.taskIdx++; p.stateTimer = rnd(6, 12); G.completedCrewTasks++; checkTaskWin(); } }
+      else { p.sabTimer -= dt; if (p.sabTimer <= 0 && !G.sabotage.reactor && !G.sabotage.o2) { botSabotage(p); p.sabTimer = rnd(30, 45); } }
+    }
+  }
+
+  function animateModel(p, dt) {
+    const u = p.model.userData;
+    p.bob += dt * (p.moving ? 10 : 3);
+    const amp = p.moving ? 0.6 : 0.12;
+    u.legL.rotation.x = Math.sin(p.bob) * amp;
+    u.legR.rotation.x = Math.sin(p.bob + Math.PI) * amp;
+    p.model.position.y = Math.abs(Math.sin(p.bob)) * (p.moving ? 0.05 : 0.015);
+    u.torso.rotation.x = Math.sin(p.bob * 0.5) * (p.moving ? 0.05 : 0.02);
+  }
+
+  function goTo(p, x, z) {
+    const from = nearestNav(p.pos.x, p.pos.z), to = nearestNav(x, z);
+    if (from < 0 || to < 0) return false;
+    p.path = bfsPath(from, to);
+    p.pathIdx = 0;
+    return true;
+  }
+  function wander(p) {
+    if (p.wanderIdx < 0) {
+      const n = NAV_NODES[rndi(0, NAV_NODES.length - 1)];
+      p.wanderIdx = rndi(0, NAV_NODES.length - 1);
+      p.targetX = NAV_NODES[p.wanderIdx].x; p.targetZ = NAV_NODES[p.wanderIdx].z;
+      goTo(p, p.targetX, p.targetZ);
+    }
+    if (p.pathIdx >= p.path.length) p.wanderIdx = -1;
+  }
+
+  function botCrew(p, dt) {
+    p.reportTimer -= dt;
+    // notice bodies
+    for (const b of G.bodies) {
+      if (dist2(p.pos.x, p.pos.z, b.x, b.z) < 25 && hasLOS(p.pos.x, p.pos.z, b.x, b.z)) {
+        p.reportTimer -= dt * 2.5;
+        if (p.reportTimer <= 0) { startMeeting(p, b); return; }
+        break;
+      }
+    }
+    // fix critical sabotages
+    if ((G.sabotage.reactor || G.sabotage.o2) && p.state !== 'fixSab' && Math.random() < 0.5) {
+      const target = G.sabotage.reactor ? FIX_STATIONS.reactor : (Math.random() < 0.5 ? FIX_STATIONS.o2a : FIX_STATIONS.o2b);
+      if (!target.fixed) { p.state = 'fixSab'; p.sabTarget = target; p.stateTimer = -1; goTo(p, target.x, target.z); }
+    }
+    if (G.sabotage.lights && p.state !== 'fixSab' && Math.random() < 0.3) {
+      const target = FIX_STATIONS.lights;
+      if (!target.fixed) { p.state = 'fixSab'; p.sabTarget = target; p.stateTimer = -1; goTo(p, target.x, target.z); }
+    }
+    if (G.sabotage.comms && p.state !== 'fixSab' && Math.random() < 0.25) {
+      const target = FIX_STATIONS.comms;
+      if (!target.fixed) { p.state = 'fixSab'; p.sabTarget = target; p.stateTimer = -1; goTo(p, target.x, target.z); }
+    }
+
+    if (p.state === 'fixSab') {
+      const t = p.sabTarget;
+      if (!t || t.fixed || (!G.sabotage.reactor && !G.sabotage.o2 && !G.sabotage.lights && !G.sabotage.comms)) { p.state = 'idle'; p.path = []; }
+      else if (dist2(p.pos.x, p.pos.z, t.x, t.z) < 3.5) {
+        if (p.stateTimer < 0) p.stateTimer = rnd(3, 6);
+        p.stateTimer -= dt;
+        if (p.stateTimer <= 0) { p.stateTimer = 0; fixSabotageStation(p, t); p.state = 'idle'; p.path = []; }
+      }
+      else if (p.pathIdx >= p.path.length) goTo(p, t.x, t.z);
+      return;
+    }
+
+    // do tasks
+    if (p.taskIdx < p.tasks.length) {
+      const task = p.tasks[p.taskIdx];
+      const st = TASK_STATIONS.find(s => s.id === task.stages[task.stageIdx ?? 0].id);
+      const stDef = task.stages[task.stageIdx ?? 0];
+      if (!st) { p.taskIdx++; return; }
+      if (p.state !== 'doTask') { p.state = 'doTask'; p.stateTimer = -1; goTo(p, st.x, st.z); }
+      if (dist2(p.pos.x, p.pos.z, st.x, st.z) < 2.6) {
+        if (p.stateTimer < 0) p.stateTimer = rnd(2.5, 5);
+        p.stateTimer -= dt;
+        if (G.visualTasks && task.visual) TASK_MESHES[st.id] && (TASK_MESHES[st.id].screen.material.emissiveIntensity = 2.2);
+        if (p.stateTimer <= 0) {
+          stDef.done = true; task.stageIdx++;
+          if (task.stageIdx >= task.stages.length) { task.done = true; p.taskIdx++; G.completedCrewTasks++; checkTaskWin(); }
+          p.state = 'idle'; p.stateTimer = rnd(1, 2);
+          TASK_MESHES[st.id] && (TASK_MESHES[st.id].screen.material.emissiveIntensity = 1.1);
+        }
+      }
+      return;
+    }
+    p.state = 'idle';
+    wander(p);
+  }
+
+  function botImp(p, dt, local) {
+    // sabotage occasionally
+    p.sabTimer -= dt;
+    if (p.sabTimer <= 0) {
+      p.sabTimer = rnd(24, 40);
+      if (!G.sabotage.reactor && !G.sabotage.o2 && Math.random() < 0.6) botSabotage(p);
+    }
+    // kill
+    p.killTimer -= dt;
+    const targets = G.players.filter(o => o.alive && !o.isImpostor && o.id !== p.id);
+    if (p.killTimer <= 0 && targets.length) {
+      const near = targets.filter(o => dist2(p.pos.x, p.pos.z, o.pos.x, o.pos.z) < 3.5);
+      if (near.length) {
+        const vic = near[0];
+        const witnesses = G.players.filter(o => o.alive && o.id !== p.id && o.id !== vic.id && dist2(p.pos.x, p.pos.z, o.pos.x, o.pos.z) < 30 && hasLOS(p.pos.x, p.pos.z, o.pos.x, o.pos.z));
+        if (!witnesses.length || Math.random() < 0.12) {
+          doKill(p, vic); return;
+        }
+      }
+    }
+    // hunt the nearest crewmate
+    if (targets.length) {
+      const t = targets.reduce((a, b) => dist2(p.pos.x, p.pos.z, a.pos.x, a.pos.z) < dist2(p.pos.x, p.pos.z, b.pos.x, b.pos.z) ? a : b);
+      if (p.state !== 'hunt') { p.state = 'hunt'; goTo(p, t.pos.x, t.pos.z); }
+      if (p.pathIdx >= p.path.length) { p.state = 'idle'; p.path = []; }
+      // use vents to reposition when far
+      if (Math.random() < dt * 0.05) {
+        const room = p.lastRoom;
+        const vent = VENT_MESHES[room];
+        if (vent && dist2(p.pos.x, p.pos.z, vent.x, vent.z) < 6) {
+          useVent(p, room, true); return;
+        }
+      }
+      return;
+    }
+    wander(p);
+  }
+
+  function botSabotage(p) {
+    const options = ['lights', 'comms'].filter(k => !G.sabotage[k]);
+    if (!G.sabotage.reactor && !G.sabotage.o2) { options.push('reactor', 'o2'); }
+    if (!options.length) return;
+    callSabotage(RAND(options), p);
+  }
+
+  /* =====================================================================
+     KILL / BODY / REPORT / VENT
+  ===================================================================== */
+  function doKill(killer, victim) {
+    victim.alive = false;
+    G.killCooldown = SETTINGS.killCooldown;
+    const colorHex = colorOf(victim.colorId).hex;
+    const body = makeBody(colorHex);
+    body.position.set(victim.pos.x, 0.34, victim.pos.z);
+    body.rotation.y = rnd(-Math.PI, Math.PI);
+    scene.add(body);
+    G.bodies.push({ group: body, x: victim.pos.x, z: victim.pos.z, victimName: victim.name, colorId: victim.colorId, colorHex });
+    if (victim.model) { scene.remove(victim.model); scene.remove(victim.sprite); victim.model = null; victim.sprite = null; }
+    // witnesses gain suspicion
+    for (const w of G.players) {
+      if (!w.alive || w.id === killer.id) continue;
+      if (dist2(w.pos.x, w.pos.z, killer.pos.x, killer.pos.z) < 49 && hasLOS(w.pos.x, w.pos.z, killer.pos.x, killer.pos.z)) {
+        w.suspicion[killer.id] = Math.min(1, w.suspicion[killer.id] + 0.8);
+        if (w.id === G.localId) announce(`${killer.name} killed ${victim.name}!`, 2.5);
+      }
+    }
+    SFX.play('kill');
+    if (victim.isLocal) onLocalDeath();
+    checkWinLose();
+  }
+
+  function onLocalDeath() {
+    // become a ghost
+    announce('You were killed. You are now a ghost — finish your tasks!', 4);
+  }
+
+  function useVent(p, roomKey, isBot = false) {
+    const group = VENT_GROUPS.find(g => g.includes(roomKey));
+    if (!group) return;
+    const options = group.filter(r => r !== roomKey && VENT_MESHES[r]);
+    if (!options.length) return;
+    const dest = RAND(options);
+    const v = VENT_MESHES[dest];
+    p.pos.x = v.x; p.pos.z = v.z;
+    p.path = []; p.state = 'idle';
+    SFX.play('vent');
+    // witnesses
+    if (!isBot) {
+      for (const w of G.players) {
+        if (!w.alive || w.isImpostor) continue;
+        if (dist2(w.pos.x, w.pos.z, v.x, v.z) < 49) { w.suspicion[G.localId] = Math.min(1, w.suspicion[G.localId] + 0.9); }
+      }
+    } else {
+      for (const w of G.players) {
+        if (!w.alive || w.isImpostor) continue;
+        if (dist2(w.pos.x, w.pos.z, p.pos.x, p.pos.z) < 49) { w.suspicion[p.id] = Math.min(1, w.suspicion[p.id] + 0.9); }
+      }
+    }
+  }
+
+  /* =====================================================================
+     SABOTAGE
+  ===================================================================== */
+  function callSabotage(kind, who) {
+    if (G.sabotage[kind]) return false;
+    if ((kind === 'reactor' || kind === 'o2') && (G.sabotage.reactor || G.sabotage.o2)) return false;
+    G.sabotage[kind] = true;
+    G.sabotageCooldown = 18;
+    SFX.play('sab');
+    if (kind === 'reactor' || kind === 'o2') {
+      const total = kind === 'reactor' ? 30 : 40;
+      G.sabotage[kind] = { active: true, timer: total, total };
+      if (kind === 'o2') { FIX_STATIONS.o2a.fixed = false; FIX_STATIONS.o2b.fixed = false; }
+      else FIX_STATIONS.reactor.fixed = false;
+      announce(kind === 'reactor' ? '☢ REACTOR MELTDOWN' : '🫁 O2 DEPLETION', 3);
+    } else if (kind === 'lights') {
+      G.sabotage.lights = true; G.lightsOn = false; FIX_STATIONS.lights.fixed = false;
+      announce('💡 LIGHTS SABOTAGED', 2.5);
+    } else {
+      G.sabotage.comms = true; FIX_STATIONS.comms.fixed = false;
+      announce('📡 COMMUNICATIONS JAMMED', 2.5);
+    }
+    return true;
+  }
+
+  function fixSabotageStation(bot, station) {
+    station.fixed = true;
+    if (station === FIX_STATIONS.lights) { G.sabotage.lights = false; G.lightsOn = true; announce('💡 Lights restored', 2); }
+    else if (station === FIX_STATIONS.comms) { G.sabotage.comms = false; announce('📡 Comms restored', 2); }
+    else if (station === FIX_STATIONS.reactor) { G.sabotage.reactor = false; announce('☢ Reactor stabilized', 2); }
+    else if (station === FIX_STATIONS.o2a || station === FIX_STATIONS.o2b) {
+      if (FIX_STATIONS.o2a.fixed && FIX_STATIONS.o2b.fixed) { G.sabotage.o2 = false; announce('🫁 O2 restored', 2); }
+    }
+    SFX.play('task');
+  }
+
+  function tickSabotage(dt) {
+    if (G.sabotageCooldown > 0) G.sabotageCooldown -= dt;
+    if (G.killCooldown > 0) G.killCooldown -= dt;
+    if (G.emergencyCooldown > 0) G.emergencyCooldown -= dt;
+    for (const kind of ['reactor', 'o2']) {
+      const s = G.sabotage[kind];
+      if (s && s.active) {
+        s.timer -= dt;
+        if (s.timer <= 0) {
+          // impostors win
+          endGame('impostor', kind === 'reactor' ? 'The reactor melted down!' : 'The crew ran out of oxygen!');
+          return;
+        }
+      }
+    }
+  }
+
+  /* =====================================================================
+     WIN / LOSE
+  ===================================================================== */
+  function checkTaskWin() {
+    if (G.state !== 'playing') return;
+    if (G.totalCrewTasks > 0) G.crewTaskProgress = G.completedCrewTasks / G.totalCrewTasks;
+    if (G.completedCrewTasks >= G.totalCrewTasks && G.totalCrewTasks > 0) endGame('crew', 'All tasks complete!');
+  }
+
+  function checkWinLose() {
+    if (G.state !== 'playing' && G.state !== 'meeting') return;
+    const aliveImps = G.players.filter(p => p.isImpostor && p.alive).length;
+    const aliveCrew = G.players.filter(p => !p.isImpostor && p.alive).length;
+    if (aliveImps === 0) { endGame('crew', 'All impostors were ejected!'); return; }
+    if (aliveImps >= aliveCrew) { endGame('impostor', 'The impostors outnumber the crew!'); return; }
+  }
+
+  /* =====================================================================
+     MINIGAME FRAMEWORK
+  ===================================================================== */
+  const mgEl = document.getElementById('mgBox');
+  const minigameHost = document.getElementById('minigame');
+  let mgActive = null;
+
+  function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+  function openMG(title, sub, builder, onDone) {
+    if (mgActive) closeMG(false);
+    minigameHost.classList.add('open');
+    exitLock();
+    mgEl.innerHTML = '';
+    const h = document.createElement('h2'); h.textContent = title; mgEl.appendChild(h);
+    const s = document.createElement('div'); s.className = 'sub'; s.textContent = sub; mgEl.appendChild(s);
+    const body = document.createElement('div'); mgEl.appendChild(body);
+    let finished = false;
+    const finish = (ok) => { if (finished) return; finished = true; closeMG(false); onDone && onDone(ok); };
+    mgActive = { finish, cancel: () => finish(false) };
+    builder(body, finish);
+  }
+  function closeMG(notify = true) {
+    minigameHost.classList.remove('open');
+    mgEl.innerHTML = '';
+    if (notify && mgActive) { const f = mgActive.finish; mgActive = null; f(false); }
+    else mgActive = null;
+    relockIfPlaying();
+  }
+  function failMG() { if (mgActive) { const f = mgActive.finish; mgActive = null; minigameHost.classList.remove('open'); mgEl.innerHTML = ''; f(false); } }
+
+  // ---- generic hold bar ----
+  function holdMinigame(body, finish, { rate = 0.42, decay = 0.2, label = 'Hold the button', auto = false } = {}) {
+    body.appendChild(el(`<div class="mg-bar"><div id="hb"></div></div>`));
+    body.appendChild(el(`<div class="muted" style="text-align:center;margin-top:10px;">${esc(label)}</div>`));
+    const btn = document.createElement('button'); btn.className = 'mg-btn'; btn.style.cssText = 'width:100%;padding:22px;margin-top:10px;font-size:18px;';
+    btn.textContent = auto ? '▶ SCANNING…' : '▶ PRESS & HOLD';
+    if (auto) btn.disabled = true;
+    body.appendChild(btn);
+    const bar = body.querySelector('#hb');
+    let prog = 0, down = false, last = performance.now();
+    const step = (t) => {
+      const dt = (t - last) / 1000; last = t;
+      if (down || auto) prog += rate * dt; else prog -= decay * dt;
+      prog = clamp(prog, 0, 1); bar.style.width = (prog * 100) + '%';
+      if (prog >= 1) finish(true);
+      else if (document.body.contains(body)) requestAnimationFrame(step);
+    };
+    const downEv = e => { e.preventDefault(); down = true; btn.textContent = 'HOLD…'; };
+    const upEv = e => { down = false; btn.textContent = auto ? '▶ SCANNING…' : '▶ PRESS & HOLD'; };
+    btn.addEventListener('pointerdown', downEv); addEventListener('pointerup', upEv); addEventListener('pointercancel', upEv);
+    requestAnimationFrame(step);
+    return () => { removeEventListener('pointerup', upEv); removeEventListener('pointercancel', upEv); };
+  }
+
+  // ---- swipe card ----
+  function swipeMinigame(body, finish) {
+    body.appendChild(el(`<div id="swipeTrack"><div id="swipeCard"></div><div id="swipeZone"></div></div>`));
+    body.appendChild(el(`<div class="muted" style="text-align:center;margin-top:12px;">Drag the card through the reader at a steady pace — not too fast!</div>`));
+    const card = body.querySelector('#swipeCard'), track = body.querySelector('#swipeTrack');
+    let dragging = false, lastX = 0, lastT = 0, speed = 0;
+    card.addEventListener('pointerdown', e => { dragging = true; lastX = e.clientX; lastT = performance.now(); card.setPointerCapture(e.pointerId); });
+    card.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      const t = performance.now(), dt = Math.max(1, t - lastT);
+      speed = Math.abs(e.clientX - lastX) / dt;
+      lastX = e.clientX; lastT = t;
+      const nx = clamp(e.clientX - track.getBoundingClientRect().left - card.offsetWidth / 2, 4, track.clientWidth - card.offsetWidth - 4);
+      card.style.left = nx + 'px';
+    });
+    const end = () => {
+      if (!dragging) return; dragging = false;
+      const x = card.getBoundingClientRect().left - track.getBoundingClientRect().left + card.offsetWidth / 2;
+      const zone = track.clientWidth - 86;
+      const tooFast = speed > 2.2;
+      if (x >= zone && !tooFast) { SFX.play('task'); finish(true); }
+      else { SFX.play('taskfail'); card.style.left = '6px'; if (tooFast) flash(body, 'Too fast! Bad read.'); else flash(body, 'Bad read — try again.'); }
+    };
+    card.addEventListener('pointerup', end); card.addEventListener('pointercancel', end);
+  }
+
+  // ---- wires ----
+  function wiresMinigame(body, finish) {
+    const cols = ['#ff3b4d', '#38f0ff', '#3ce37f', '#ffd23e'];
+    const left = cols.slice();
+    const right = cols.slice().sort(() => Math.random() - 0.5);
+    const wrap = el(`<div class="wire-col"><div class="col" id="wireL"></div><div class="col" id="wireR"></div></div>`);
+    body.appendChild(wrap);
+    const lEl = wrap.querySelector('#wireL'), rEl = wrap.querySelector('#wireR');
+    let sel = null, matched = 0;
+    left.forEach(c => { const n = el(`<div class="wire-node" style="background:${c}"></div>`); n.dataset.c = c; lEl.appendChild(n); });
+    right.forEach(c => { const n = el(`<div class="wire-node" style="background:${c}"></div>`); n.dataset.c = c; rEl.appendChild(n); });
+    const nodes = [...lEl.children, ...rEl.children];
+    nodes.forEach(n => n.addEventListener('click', () => {
+      if (n.classList.contains('matched')) return;
+      if (n.parentElement === lEl) { sel = n; nodes.forEach(o => o.classList.remove('sel')); n.classList.add('sel'); SFX.play('click'); }
+      else {
+        if (!sel) return;
+        if (sel.dataset.c === n.dataset.c) { sel.classList.add('matched'); n.classList.add('matched'); matched++; SFX.play('task'); if (matched === 4) finish(true); }
+        else { SFX.play('taskfail'); sel.classList.remove('sel'); flash(body, 'Wrong connection!'); }
+        sel = null;
+      }
+    }));
+  }
+
+  // ---- calibrate distributor ----
+  function calibrateMinigame(body, finish) {
+    body.appendChild(el(`<div class="mg-bar"><div id="calMarker" style="width:8px;height:22px;background:#ff3b4d;border-radius:6px;position:relative;"></div></div>`));
+    body.appendChild(el(`<div class="muted" style="text-align:center;margin-top:8px;">Press the button when the marker is inside the green zone.</div>`));
+    const btn = el(`<button class="mg-btn" style="width:100%;margin-top:12px;padding:18px;">GO</button>`); body.appendChild(btn);
+    const bar = body.querySelector('.mg-bar'), marker = body.querySelector('#calMarker');
+    const zone = el(`<div style="position:absolute;left:44%;width:14%;top:0;bottom:0;background:rgba(60,227,127,.35);border-radius:4px;"></div>`);
+    bar.style.position = 'relative'; bar.appendChild(zone);
+    let x = 0, dir = 1, rounds = 0, won = false;
+    const step = () => {
+      if (won || !document.body.contains(body)) return;
+      x += dir * 0.03;
+      if (x > 0.98 || x < 0) dir *= -1;
+      marker.style.left = (x * 100) + '%';
+      requestAnimationFrame(step);
+    };
+    btn.addEventListener('click', () => {
+      if (won) return;
+      if (x > 0.44 && x < 0.58) { rounds++; SFX.play('click'); btn.textContent = 'GO (' + rounds + '/3)'; }
+      else { SFX.play('taskfail'); flash(body, 'Missed!'); }
+      if (rounds >= 3) { won = true; SFX.play('task'); finish(true); }
+    });
+    requestAnimationFrame(step);
+  }
+
+  // ---- unlock manifolds (buttons in order) ----
+  function buttonsMinigame(body, finish) {
+    body.appendChild(el(`<div class="muted" style="text-align:center;">Press the numbered buttons in order.</div>`));
+    const pads = el(`<div class="pad-row">${[1,2,3,4,5].map(i=>`<div class="pad" data-i="${i}">${i}</div>`).join('')}</div>`);
+    body.appendChild(pads);
+    let need = 1;
+    pads.querySelectorAll('.pad').forEach(pd => pd.addEventListener('click', () => {
+      if (+pd.dataset.i === need) { pd.classList.add('lit'); need++; SFX.play('click'); if (need > 5) { SFX.play('task'); finish(true); } }
+      else { SFX.play('taskfail'); flash(body, 'Wrong button!'); }
+    }));
+  }
+
+  // ---- prime shields ----
+  function shieldsMinigame(body, finish) {
+    body.appendChild(el(`<div class="muted" style="text-align:center;">Light up every shield panel.</div>`));
+    const grid = el(`<div class="hexgrid">${Array.from({length:6},()=>'<div class="hex"></div>').join('')}</div>`);
+    body.appendChild(grid);
+    let lit = 0;
+    grid.querySelectorAll('.hex').forEach(h => h.addEventListener('click', () => {
+      if (h.classList.contains('lit')) return;
+      h.classList.add('lit'); lit++; SFX.play('click');
+      if (lit === 6) { SFX.play('task'); finish(true); }
+    }));
+  }
+
+  // ---- divert power (switches) ----
+  function switchesMinigame(body, finish) {
+    body.appendChild(el(`<div class="muted" style="text-align:center;">Flip every switch to the ON position.</div>`));
+    const row = el(`<div class="sw-row">${Array.from({length:5},()=>'<div class="sw"><div class="lev"></div></div>').join('')}</div>`);
+    body.appendChild(row);
+    let on = 0;
+    row.querySelectorAll('.sw').forEach(s => s.addEventListener('click', () => {
+      if (s.classList.contains('on')) { s.classList.remove('on'); on--; }
+      else { s.classList.add('on'); on++; SFX.play('click'); }
+      if (on === 5) { SFX.play('task'); finish(true); }
+    }));
+  }
+
+  // ---- clean o2 filter (leaves) ----
+  function leavesMinigame(body, finish) {
+    body.appendChild(el(`<div class="muted" style="text-align:center;">Tap each leaf to pull it out of the filter.</div>`));
+    const area = el(`<div style="position:relative;height:150px;background:radial-gradient(circle at 50% 60%,#123,#0a1620);border-radius:14px;border:1px solid var(--line);overflow:hidden;">${Array.from({length:7},(_,i)=>`<span class="leaf" data-i="${i}" style="left:${10+i*12}%;top:${20+(i%3)*30}%;transform:rotate(${i*37}deg);">🍃</span>`).join('')}</div>`);
+    body.appendChild(area);
+    area.querySelectorAll('.leaf').forEach(lf => lf.addEventListener('click', () => { lf.remove(); SFX.play('click'); if (!area.querySelector('.leaf')) { SFX.play('task'); finish(true); } }));
+  }
+
+  // ---- clear asteroids ----
+  function asteroidsMinigame(body, finish) {
+    body.appendChild(el(`<div class="muted" style="text-align:center;">Blast all the asteroids.</div>`));
+    const area = el(`<div style="position:relative;height:180px;background:radial-gradient(circle at 30% 30%,#1a2036,#05070e);border-radius:14px;border:1px solid var(--line);overflow:hidden;">${Array.from({length:8},(_,i)=>`<span class="ast" data-i="${i}" style="left:${5+(i*11)%90}%;top:${10+(i*29)%75}%;">☄️</span>`).join('')}</div>`);
+    body.appendChild(area);
+    area.querySelectorAll('.ast').forEach(a => a.addEventListener('click', () => { a.textContent = '💥'; a.style.transform = 'scale(1.4)'; a.style.pointerEvents = 'none'; SFX.play('kill'); if (!area.querySelector('.ast:not([style*="none"])')) { SFX.play('task'); finish(true); } }));
+  }
+
+  // ---- drag-to-target (steer / align / chart) ----
+  function dragTargetMinigame(body, finish, opts) {
+    const { handleText = '🟡', targetText = '🎯', height = 150, horiz = true, tol = 26 } = opts || {};
+    const area = el(`<div class="drag-wrap" style="height:${height}px;"><div class="drag-handle" id="dh" style="${horiz ? 'top:50%;margin-top:-22px;left:8px;' : 'left:50%;margin-left:-22px;top:8px;'}">${handleText}</div><div id="tgt" style="position:absolute;font-size:22px;">${targetText}</div></div>`);
+    body.appendChild(area);
+    const h = area.querySelector('#dh'), t = area.querySelector('#tgt');
+    const place = () => { if (horiz) { t.style.left = rnd(30, 82) + '%'; t.style.top = '50%'; t.style.marginTop = '-11px'; } else { t.style.top = rnd(30, 78) + '%'; t.style.left = '50%'; t.style.marginLeft = '-11px'; } };
+    place();
+    const near = () => {
+      const hr = h.getBoundingClientRect(), tr = t.getBoundingClientRect();
+      return Math.hypot(hr.left - tr.left + (hr.width - tr.width) / 2, hr.top - tr.top + (hr.height - tr.height) / 2) < tol;
+    };
+    let drag = false;
+    h.addEventListener('pointerdown', e => { drag = true; h.setPointerCapture(e.pointerId); });
+    h.addEventListener('pointermove', e => {
+      if (!drag) return;
+      const r = area.getBoundingClientRect();
+      if (horiz) h.style.left = clamp(e.clientX - r.left - h.offsetWidth / 2, 2, r.width - h.offsetWidth - 2) + 'px';
+      else h.style.top = clamp(e.clientY - r.top - h.offsetHeight / 2, 2, r.height - h.offsetHeight - 2) + 'px';
+      if (near()) { SFX.play('task'); finish(true); }
+    });
+    h.addEventListener('pointerup', () => drag = false); h.addEventListener('pointercancel', () => drag = false);
+  }
+
+  // ---- simon (reactor) ----
+  function simonMinigame(body, finish) {
+    body.appendChild(el(`<div class="muted" style="text-align:center;">Watch the sequence, then repeat it.</div>`));
+    const padsEl = el(`<div class="pad-row">${[1,2,3,4,5].map(i=>`<div class="pad" data-i="${i}">${i}</div>`).join('')}</div>`);
+    body.appendChild(padsEl);
+    const status = el(`<div class="mg-num" id="simonStatus">…</div>`); body.appendChild(status);
+    const pads = [...padsEl.children];
+    const seq = [rndi(1,5), rndi(1,5), rndi(1,5), rndi(1,5)];
+    let phase = 'show', idx = 0, inputIdx = 0;
+    const flash = (i) => { pads[i-1].classList.add('lit'); setTimeout(() => pads[i-1].classList.remove('lit'), 320); };
+    const showNext = () => {
+      if (idx >= seq.length) { phase = 'input'; inputIdx = 0; status.textContent = 'Your turn'; return; }
+      status.textContent = 'Watch…'; flash(seq[idx]); idx++; setTimeout(showNext, 560);
+    };
+    setTimeout(showNext, 700);
+    pads.forEach(pd => pd.addEventListener('click', () => {
+      if (phase !== 'input') return;
+      if (+pd.dataset.i === seq[inputIdx]) { flash(+pd.dataset.i); inputIdx++; SFX.play('click'); if (inputIdx >= seq.length) { SFX.play('task'); finish(true); } }
+      else { SFX.play('taskfail'); status.textContent = 'Wrong! Restarting…'; phase = 'show'; idx = 0; setTimeout(showNext, 900); }
+    }));
+  }
+
+  // ---- O2 keypad code ----
+  function codeMinigame(body, finish) {
+    const code = String(rndi(10000, 99999));
+    body.appendChild(el(`<div class="mg-num" id="codeShow">${code.split('').map(()=>'_').join(' ')}</div>`));
+    body.appendChild(el(`<div class="muted" style="text-align:center;">Enter the code shown above: <b style="color:var(--green);font-size:20px;">${code}</b></div>`));
+    const keys = el(`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px;">${[1,2,3,4,5,6,7,8,9,0].map(i=>`<div class="pad" data-i="${i}" style="width:auto;">${i}</div>`).join('')}</div>`);
+    body.appendChild(keys);
+    const show = body.querySelector('#codeShow');
+    let entered = '';
+    keys.querySelectorAll('.pad').forEach(k => k.addEventListener('click', () => {
+      entered += k.dataset.i; SFX.play('click');
+      if (code.indexOf(entered) !== 0) { entered = ''; SFX.play('taskfail'); flash(body, 'Wrong — start over'); }
+      show.textContent = code.split('').map((d, i) => i < entered.length ? d : '_').join(' ');
+      if (entered === code) { SFX.play('task'); finish(true); }
+    }));
+  }
+
+  function flash(body, msg) {
+    const f = el(`<div style="color:var(--red);font-family:'Baloo 2';font-weight:700;text-align:center;margin-top:8px;">${esc(msg)}</div>`);
+    body.appendChild(f); setTimeout(() => f.remove(), 900);
+  }
+
+  /* =====================================================================
+     OPEN TASK / FIX MINIGAME
+  ===================================================================== */
+  function currentTaskStation() {
+    const p = G.players[G.localId];
+    for (const task of p.tasks) {
+      if (task.done) continue;
+      const stage = task.stages.find(s => !s.done);
+      if (stage) return { task, stage, station: TASK_STATIONS.find(s => s.id === stage.id) };
+    }
+    return null;
+  }
+
+  function openTaskMinigame(task, stage, station) {
+    const done = (ok) => {
+      releasePointerLockGuard();
+      if (ok) {
+        stage.done = true; task.stageIdx = (task.stageIdx || 0) + 1;
+        if (task.stages.every(s => s.done)) { task.done = true; G.completedCrewTasks++; checkTaskWin(); }
+        SFX.play('task');
+        if (TASK_MESHES[station.id]) TASK_MESHES[station.id].group.visible = false;
+        refreshTaskList();
+      }
+    };
+    const sub = `${task.name} — ${station.name}`;
+    const t = station.ts;
+    switch (t.mg) {
+      case 'swipe': openMG('Swipe Card', sub, (b, f) => swipeMinigame(b, f), done); break;
+      case 'wires': openMG('Fix Wiring', sub, (b, f) => wiresMinigame(b, f), done); break;
+      case 'hold': openMG(task.name, sub, (b, f) => holdMinigame(b, f, { label: 'Hold to complete' }), done); break;
+      case 'calibrate': openMG('Calibrate Distributor', sub, (b, f) => calibrateMinigame(b, f), done); break;
+      case 'buttons': openMG('Unlock Manifolds', sub, (b, f) => buttonsMinigame(b, f), done); break;
+      case 'shields': openMG('Prime Shields', sub, (b, f) => shieldsMinigame(b, f), done); break;
+      case 'switches': openMG(task.name, sub, (b, f) => switchesMinigame(b, f), done); break;
+      case 'leaves': openMG('Clean O2 Filter', sub, (b, f) => leavesMinigame(b, f), done); break;
+      case 'asteroids': openMG('Clear Asteroids', sub, (b, f) => asteroidsMinigame(b, f), done); break;
+      case 'steer': openMG('Stabilize Steering', sub, (b, f) => dragTargetMinigame(b, f, { handleText: '🧭', targetText: '🎯' }), done); break;
+      case 'align': openMG('Align Engine Output', sub, (b, f) => dragTargetMinigame(b, f, { handleText: '🔧', targetText: '🎯' }), done); break;
+      case 'chart': openMG('Chart Course', sub, (b, f) => dragTargetMinigame(b, f, { handleText: '🚀', targetText: '📍', height: 180 }), done); break;
+      case 'scan': openMG('Submit Scan', sub, (b, f) => holdMinigame(b, f, { rate: 0.16, decay: 0.04, auto: true, label: 'Stand still while the scanner runs…' }), done); break;
+      case 'simon': openMG('Start Reactor', sub, (b, f) => simonMinigame(b, f), done); break;
+    }
+  }
+
+  function openFixMinigame(station) {
+    const done = (ok) => {
+      releasePointerLockGuard();
+      if (ok) fixSabotageStation(null, station);
+    };
+    if (station === FIX_STATIONS.reactor) openMG('Stop Reactor Meltdown', 'Repeat the sequence', (b, f) => simonMinigame(b, f), done);
+    else if (station === FIX_STATIONS.o2a || station === FIX_STATIONS.o2b) openMG('O2 Keypad', 'Enter the code to restore oxygen', (b, f) => codeMinigame(b, f), done);
+    else if (station === FIX_STATIONS.lights) openMG('Fix Lights', 'Flip every breaker to ON', (b, f) => switchesMinigame(b, f), done);
+    else if (station === FIX_STATIONS.comms) openMG('Restore Comms', 'Re-align the antenna dial', (b, f) => dragTargetMinigame(b, f, { handleText: '📡', targetText: '🎯' }), done);
+  }
+
+  /* =====================================================================
+     MEETING
+  ===================================================================== */
+  const MEET = { phase: 'discuss', timer: 0, votes: {}, voted: new Set(), reporter: null, bodyName: null, selId: -1, localVoted: false };
+
+  function startMeeting(reporter, body) {
+    if (G.state !== 'playing') return;
+    G.state = 'meeting';
+    MEET.phase = 'discuss'; MEET.timer = SETTINGS.discussionTime;
+    MEET.votes = {}; MEET.voted = new Set(); MEET.selId = -1; MEET.localVoted = false;
+    MEET.reporter = reporter;
+    MEET.bodyName = body ? body.victimName : null;
+    // clear bodies + critical sabotages
+    for (const b of G.bodies) scene.remove(b.group);
+    G.bodies = [];
+    if (G.sabotage.reactor) G.sabotage.reactor = false;
+    if (G.sabotage.o2) G.sabotage.o2 = false;
+    closeMG(false);
+    if (pointerLocked) document.exitPointerLock && document.exitPointerLock();
+    document.getElementById('meeting').classList.add('open');
+    document.getElementById('hud').classList.add('hidden');
+    const chat = document.getElementById('chat'); chat.innerHTML = '';
+    addChat(null, null, `✋ ${reporter ? reporter.name : 'Someone'} reported${MEET.bodyName ? ' the body of ' + MEET.bodyName : ' an emergency meeting'}!`, true);
+    SFX.play('report');
+    buildMeetingPlayers();
+    scheduleBotChat();
+  }
+
+  function buildMeetingPlayers() {
+    const list = document.getElementById('playersList'); list.innerHTML = '';
+    for (const p of G.players) {
+      const div = el(`<div class="pl ${p.alive ? '' : 'dead'}" data-id="${p.id}"><div class="pl-av" style="background:${colorOf(p.colorId).css}"></div><div class="pl-name">${esc(p.name)}</div><div class="muted" style="font-size:10px;">${p.isImpostor && !p.alive ? '' : (p.alive ? '● alive' : '☠ dead')}</div></div>`);
+      div.addEventListener('click', () => selectVote(p.id, div));
+      list.appendChild(div);
+    }
+    updateVoteHint();
+  }
+
+  function selectVote(id, div) {
+    if (MEET.phase !== 'vote' || MEET.localVoted || !G.players[G.localId].alive) return;
+    MEET.selId = id;
+    document.querySelectorAll('#playersList .pl').forEach(n => n.classList.toggle('vote-sel', +n.dataset.id === id));
+    SFX.play('vote');
+  }
+
+  function updateVoteHint() {
+    const h = document.getElementById('voteHint');
+    if (MEET.phase === 'discuss') h.textContent = 'Discussion — share what you saw';
+    else if (MEET.phase === 'vote') {
+      if (MEET.localVoted) h.textContent = 'Vote locked in ✓';
+      else if (MEET.selId >= 0) h.textContent = `Voting ${G.players[MEET.selId].name} — press Confirm`;
+      else h.textContent = 'Vote for someone, or Skip';
+    } else h.textContent = '';
+  }
+
+  function addChat(playerId, css, text, sys = false) {
+    const chat = document.getElementById('chat');
+    const m = el(`<div class="msg"></div>`);
+    if (sys) m.innerHTML = `<span class="sys">${esc(text)}</span>`;
+    else m.innerHTML = `<b style="color:${css}">${esc(playerId >= 0 ? G.players[playerId].name : 'You')}:</b> ${esc(text)}`;
+    chat.appendChild(m); chat.scrollTop = chat.scrollHeight;
+  }
+
+  function botChatLine(p) {
+    const others = G.players.filter(o => o.alive && o.id !== p.id && !o.isImpostor);
+    const room = roomLabel(p.lastRoom);
+    if (p.isImpostor) {
+      const crew = G.players.find(o => o.alive && !o.isImpostor && o.id !== p.id);
+      return RAND([
+        `I was in ${room} the whole time.`,
+        `${crew ? crew.name : 'Blue'} is acting sus.`,
+        `I was doing my tasks.`,
+        `Where was the body?`,
+        `Idk, skip?`,
+        `${crew ? crew.name : 'Someone'} followed me earlier…`,
+        `I saw ${crew ? crew.name : 'Red'} near ${room}.`,
+      ]);
+    }
+    let suspect = -1, maxS = 0;
+    p.suspicion.forEach((s, i) => { if (s > maxS && G.players[i].alive) { maxS = s; suspect = i; } });
+    if (suspect >= 0 && maxS > 0.5) return RAND([
+      `${G.players[suspect].name} vented! I saw it!`,
+      `I saw ${G.players[suspect].name} kill!`,
+      `Vote ${G.players[suspect].name}!!`,
+      `${G.players[suspect].name} is the impostor.`,
+    ]);
+    return RAND([
+      `Where?`, `I was in ${room}.`, `I was doing ${p.tasks[0] ? p.tasks[0].name : 'tasks'}.`,
+      `Anyone see anything?`, `Sus.`, `I think it's safe to skip.`, `I was with ${RAND(others) ? RAND(others).name : 'no one'}.`,
+      `Let's not vote without proof.`, `Hmm.`,
+    ]);
+  }
+
+  let chatTimer = 0;
+  function scheduleBotChat() { chatTimer = 1.2; }
+  function updateMeeting(dt) {
+    MEET.timer -= dt;
+    document.getElementById('meetTimer').textContent = Math.max(0, Math.ceil(MEET.timer));
+    if (MEET.phase === 'discuss') {
+      chatTimer -= dt;
+      if (chatTimer <= 0) {
+        const talkers = G.players.filter(p => p.alive && !p.isLocal);
+        if (talkers.length) { const t = RAND(talkers); addChat(t.id, colorOf(t.colorId).css, botChatLine(t)); }
+        chatTimer = rnd(1.8, 3.6);
+      }
+      if (MEET.timer <= 0) startVotePhase();
+    } else if (MEET.phase === 'vote') {
+      for (const p of G.players) {
+        if (p.alive && !p.isLocal && !MEET.voted.has(p.id)) botVote(p);
+      }
+      if (allVoted()) MEET.timer = Math.min(MEET.timer, 0.8);
+      if (MEET.timer <= 0) tallyVotes();
+    } else if (MEET.phase === 'result') {
+      if (MEET.timer <= 0) endMeeting();
+    }
+  }
+
+  function startVotePhase() {
+    MEET.phase = 'vote'; MEET.timer = SETTINGS.voteTime;
+    addChat(null, null, '🗳 Time to vote! Pick a suspect or skip.', true);
+    updateVoteHint();
+  }
+
+  function botVote(p) {
+    MEET.voted.add(p.id);
+    let target = -1;
+    if (p.isImpostor) {
+      const crew = G.players.filter(o => o.alive && !o.isImpostor);
+      target = Math.random() < 0.4 ? -1 : (crew.length ? RAND(crew).id : -1);
+    } else {
+      let suspect = -1, maxS = 0;
+      p.suspicion.forEach((s, i) => { if (s > maxS && G.players[i].alive) { maxS = s; suspect = i; } });
+      if (maxS > 0.55) target = suspect;
+      else if (Math.random() < 0.25) { const cands = G.players.filter(o => o.alive && o.id !== p.id); target = cands.length ? RAND(cands).id : -1; }
+      else target = -1;
+    }
+    MEET.votes[p.id] = target;
+    if (target >= 0) addChat(p.id, colorOf(p.colorId).css, `I'm voting ${G.players[target].name}.`);
+  }
+
+  function confirmLocalVote() {
+    if (MEET.phase !== 'vote' || MEET.localVoted || !G.players[G.localId].alive) return;
+    MEET.localVoted = true;
+    MEET.voted.add(G.localId);
+    MEET.votes[G.localId] = MEET.selId;
+    const local = G.players[G.localId];
+    if (MEET.selId >= 0) addChat(null, null, `You voted ${G.players[MEET.selId].name}.`, true);
+    else addChat(null, null, 'You skipped.', true);
+    updateVoteHint();
+    if (allVoted()) setTimeout(tallyVotes, 500);
+  }
+
+  function allVoted() { return G.players.every(p => !p.alive || MEET.voted.has(p.id)); }
+
+  function tallyVotes() {
+    if (MEET.phase === 'result') return;
+    MEET.phase = 'result';
+    // count
+    const tally = {};
+    for (const p of G.players) if (p.alive && MEET.votes[p.id] !== undefined) {
+      const t = MEET.votes[p.id];
+      tally[t] = (tally[t] || 0) + 1;
+    }
+    let top = -1, topN = 0, skipN = tally[-1] || 0;
+    for (const k in tally) { const id = +k; if (id < 0) continue; if (tally[k] > topN) { topN = tally[k]; top = id; } }
+    let ejected = -1;
+    if (topN > skipN && topN > 0) ejected = top;
+    const res = document.createElement('div');
+    const box = document.getElementById('playersList');
+    if (ejected >= 0) {
+      const p = G.players[ejected];
+      MEET.timer = 4.5;
+      res.className = 'result';
+      res.innerHTML = `${esc(p.name)} was ejected.<small>${p.isImpostor ? '😈 ' + esc(p.name) + ' was An Impostor.' : '😇 ' + esc(p.name) + ' was not An Impostor.'}</small>`;
+      addChat(null, null, `${p.name} was ejected. ${p.isImpostor ? 'They were an Impostor!' : 'They were not an Impostor.'}`, true);
+      MEET.ejectedId = ejected;
+      document.querySelector(`#playersList .pl[data-id="${ejected}"]`)?.classList.add('ejected');
+      if (p.isImpostor) SFX.play('win'); else SFX.play('eject');
+      applyEjection(ejected);
+    } else {
+      MEET.timer = 3.2;
+      res.className = 'result';
+      res.innerHTML = `No one was ejected.<small>${skipN > 0 ? '(skipped)' : '(tie vote)'}</small>`;
+      addChat(null, null, 'No one was ejected.', true);
+      MEET.ejectedId = -1;
+      SFX.play('vote');
+    }
+    box.appendChild(res);
+    document.getElementById('btnVoteConfirm').disabled = true;
+    document.getElementById('btnSkip').disabled = true;
+    updateVoteHint();
+  }
+
+  function applyEjection(id) {
+    const p = G.players[id];
+    p.alive = false;
+    if (p.model) { scene.remove(p.model); scene.remove(p.sprite); p.model = null; p.sprite = null; }
+  }
+
+  function endMeeting() {
+    document.getElementById('meeting').classList.remove('open');
+    document.getElementById('hud').classList.remove('hidden');
+    document.getElementById('btnVoteConfirm').disabled = false;
+    document.getElementById('btnSkip').disabled = false;
+    MEET.phase = 'discuss';
+    checkWinLose();
+    if (G.state === 'meeting') G.state = 'playing';
+    if (G.state === 'playing') refreshTaskList();
+  }
+
+  /* =====================================================================
+     FIX STATIONS (sabotage panels)
+  ===================================================================== */
+  const FIX_MESHES = {};
+  const FIX_ICONS = { reactor: '☢️', o2a: '🫁', o2b: '🫁', lights: '💡', comms: '📡' };
+  function buildFixStations() {
+    for (const [key, st] of Object.entries(FIX_STATIONS)) {
+      const g = new THREE.Group();
+      const dark = new THREE.MeshStandardMaterial({ color: 0x232c40, roughness: 0.6, metalness: 0.4 });
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.9, 0.7), dark); base.position.y = 0.45; g.add(base);
+      const scr = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.5, 0.08), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xff5a6b, emissiveIntensity: 1.3, roughness: 0.3 }));
+      scr.position.set(0, 1.05, 0.36); g.add(scr);
+      const icon = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5), new THREE.MeshBasicMaterial({ map: makeCanvasTexture((ctx, w, h) => {
+        ctx.clearRect(0, 0, w, h); ctx.fillStyle = 'rgba(40,8,14,.9)'; ctx.fillRect(0, 0, w, h);
+        ctx.font = '40px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(FIX_ICONS[key], w / 2, h / 2);
+      }, 64, 64) }));
+      icon.position.set(0, 1.06, 0.41); g.add(icon);
+      g.position.set(st.x, 0, st.z);
+      scene.add(g);
+      FIX_MESHES[key] = { group: g, screen: scr, station: st };
+    }
+  }
+
+  /* =====================================================================
+     DOM REFERENCES
+  ===================================================================== */
+  const $ = id => document.getElementById(id);
+  const hudEl = $('hud'), taskListEl = $('taskList'), progressWrap = $('progressWrap'), progressBar = $('progressBar'),
+        progressLabel = $('progressLabel'), minimapEl = $('minimap'), promptEl = $('prompt'), announceEl = $('announce'),
+        sabBannerEl = $('sabotageBanner'), crosshairEl = $('crosshair'),
+        btnUse = $('btnUse'), btnReport = $('btnReport'), btnKill = $('btnKill'), btnVent = $('btnVent'), btnSab = $('btnSab'),
+        tUse = $('tUse'), tReport = $('tReport'), tKill = $('tKill'), tVent = $('tVent'), tSab = $('tSab'),
+        menuScreen = $('menu'), lobbyScreen = $('lobby'), pauseScreen = $('pause'), gameoverScreen = $('gameover'),
+        sabotageScreen = $('sabotage'), ventScreen = $('ventmenu'), touchEl = $('touch');
+
+  let lightLevel = 1, pointerLocked = false, lobbyColor = 'red', adminTimer = 0;
+
+  /* =====================================================================
+     ANNOUNCE / HUD
+  ===================================================================== */
+  function announce(text, dur = 3) { announceEl.textContent = text; G.annTimer = dur; }
+
+  function refreshTaskList() {
+    const p = G.players[G.localId];
+    taskListEl.innerHTML = '';
+    if (p.isImpostor) {
+      const h = document.createElement('div'); h.className = 'task-item'; h.style.color = '#ff8593'; h.style.fontWeight = '700';
+      h.textContent = 'FAKE TASKS (blend in!)'; taskListEl.appendChild(h);
+    }
+    for (const t of p.tasks) {
+      const d = document.createElement('div');
+      d.className = 'task-item' + (t.done ? ' done' : '');
+      d.textContent = (t.done ? '✔ ' : '• ') + t.name;
+      taskListEl.appendChild(d);
+    }
+    // show arrows over the current task stations (crew only)
+    for (const k in TASK_MESHES) TASK_MESHES[k].arrow.visible = false;
+    if (!p.isImpostor) {
+      for (const t of p.tasks) {
+        if (t.done) continue;
+        const stage = t.stages.find(s => !s.done);
+        if (stage && TASK_MESHES[stage.id]) TASK_MESHES[stage.id].arrow.visible = true;
+      }
+    }
+  }
+
+  function updateProgress() {
+    const p = G.players[G.localId];
+    if (p.isImpostor) { progressWrap.classList.add('hidden'); progressLabel.classList.add('hidden'); }
+    else {
+      progressWrap.classList.remove('hidden'); progressLabel.classList.remove('hidden');
+      const pct = Math.min(100, Math.round(G.crewTaskProgress * 100));
+      progressBar.style.width = pct + '%';
+      progressLabel.textContent = 'TASKS  ' + pct + '%';
+    }
+  }
+
+  function drawMap(ctx, w, h, { players = true, bodies = true } = {}) {
+    const worldW = 100, worldH = 54;
+    const s = Math.min((w - 16) / worldW, (h - 16) / worldH);
+    const ox = (w - worldW * s) / 2, oy = (h - worldH * s) / 2;
+    const mx = x => ox + (x + 49) * s, mz = z => oy + (z + 26) * s;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(6,9,16,.92)'; ctx.fillRect(0, 0, w, h);
+    for (const C of CORRIDORS) { ctx.fillStyle = '#28344a'; ctx.fillRect(mx(C.x - C.w / 2), mz(C.z - C.d / 2), C.w * s, C.d * s); }
+    for (const R of ROOMS) {
+      ctx.fillStyle = ROOM_ACCENT[R.key] + '44';
+      ctx.fillRect(mx(R.x - R.w / 2), mz(R.z - R.d / 2), R.w * s, R.d * s);
+      ctx.strokeStyle = ROOM_ACCENT[R.key] + 'cc'; ctx.lineWidth = 1; ctx.strokeRect(mx(R.x - R.w / 2), mz(R.z - R.d / 2), R.w * s, R.d * s);
+      ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.font = `${Math.max(6, s * 2.2)}px sans-serif`; ctx.textAlign = 'center';
+      ctx.fillText(R.key, mx(R.x), mz(R.z) + 3);
+    }
+    if (bodies) for (const b of G.bodies) { ctx.fillStyle = '#cfd6e0'; ctx.beginPath(); ctx.arc(mx(b.x), mz(b.z), 2.4, 0, 7); ctx.fill(); }
+    if (players) for (const p of G.players) {
+      if (!p.alive || p.isLocal) continue;
+      ctx.fillStyle = colorOf(p.colorId).css;
+      ctx.beginPath(); ctx.arc(mx(p.pos.x), mz(p.pos.z), 3, 0, 7); ctx.fill();
+    }
+    const local = G.players[G.localId];
+    if (local && local.alive) {
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(mx(local.pos.x), mz(local.pos.z), 3.6, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
+    }
+  }
+
+  function updateMinimap() {
+    const ctx = minimapEl.getContext('2d');
+    drawMap(ctx, minimapEl.width, minimapEl.height);
+  }
+  function updateAdminTable(dt) {
+    adminTimer -= dt;
+    if (adminTimer <= 0 && adminTableScreen) {
+      adminTimer = 0.4;
+      const ctx = adminTableScreen.material.map.image.getContext('2d');
+      const w = 256, h = 192;
+      const s = Math.min((w - 14) / 100, (h - 14) / 54);
+      const ox = (w - 100 * s) / 2, oy = (h - 54 * s) / 2;
+      const mx = x => ox + (x + 49) * s, mz = z => oy + (z + 26) * s;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#06141f'; ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#12303f';
+      for (const C of CORRIDORS) ctx.fillRect(mx(C.x - C.w / 2), mz(C.z - C.d / 2), C.w * s, C.d * s);
+      for (const R of ROOMS) { ctx.strokeStyle = '#1e5f75'; ctx.lineWidth = 1; ctx.strokeRect(mx(R.x - R.w / 2), mz(R.z - R.d / 2), R.w * s, R.d * s); }
+      for (const p of G.players) {
+        if (!p.alive) continue;
+        ctx.fillStyle = colorOf(p.colorId).css;
+        ctx.beginPath(); ctx.arc(mx(p.pos.x), mz(p.pos.z), 3, 0, 7); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.stroke();
+      }
+      adminTableScreen.material.map.needsUpdate = true;
+    }
+  }
+
+  function updateSabotageBanner() {
+    let html = '';
+    const s = G.sabotage;
+    if (s.reactor && s.reactor.active) html += `<div class="banner-txt">☢ REACTOR MELTDOWN — ${Math.ceil(s.reactor.timer)}s</div><div class="banner-sub">Get to the Reactor and stop it!</div>`;
+    if (s.o2 && s.o2.active) html += `<div class="banner-txt">🫁 O2 DEPLETION — ${Math.ceil(s.o2.timer)}s</div><div class="banner-sub">Enter the codes at O2 and Admin!</div>`;
+    if (!s.reactor && !s.o2) {
+      const parts = [];
+      if (s.lights) parts.push('💡 LIGHTS OUT');
+      if (s.comms) parts.push('📡 COMMS DOWN');
+      if (parts.length) html += `<div class="banner-txt">${parts.join('  ·  ')}</div><div class="banner-sub">Go fix it!</div>`;
+    }
+    sabBannerEl.innerHTML = html;
+  }
+
+  function updateButtons(inter) {
+    const p = G.players[G.localId];
+    const isImp = p.isImpostor, alive = p.alive, isGhost = !alive;
+    // desktop
+    btnUse.classList.toggle('hidden', !inter.use);
+    btnUse.innerHTML = 'E<br>' + (inter.useLabel || 'Use');
+    btnReport.classList.toggle('hidden', !(alive && inter.report));
+    btnKill.classList.toggle('hidden', !(isImp && alive));
+    btnVent.classList.toggle('hidden', !(isImp && alive && inter.vent));
+    btnSab.classList.toggle('hidden', !isImp);
+    btnSab.innerHTML = isGhost ? 'Tab<br>Sabotage' : 'Tab<br>Sabotage';
+    if (isImp && alive) {
+      if (G.killCooldown > 0) { btnKill.classList.add('disabled'); btnKill.innerHTML = `<span class="cooldown">${Math.ceil(G.killCooldown)}</span>`; }
+      else { btnKill.classList.remove('disabled'); btnKill.innerHTML = 'Q<br>Kill'; }
+    }
+    // touch
+    tUse.style.display = inter.use ? 'flex' : 'none';
+    tReport.style.display = (alive && inter.report) ? 'flex' : 'none';
+    tKill.style.display = (isImp && alive) ? 'flex' : 'none';
+    tVent.style.display = (isImp && alive && inter.vent) ? 'flex' : 'none';
+    tSab.style.display = isImp ? 'flex' : 'none';
+  }
+
+  function showPrompt(inter) {
+    let html = '', b = '<b>';
+    if (inter.use) html = `${b}E</b> — ${inter.useLabel}`;
+    else if (inter.report) html = `${b}R</b> — Report body`;
+    else if (inter.vent) html = `${b}V</b> — Vent`;
+    else if (inter.kill) html = `${b}Q</b> — Kill ${inter.killName}`;
+    else if (G.players[G.localId].isImpostor && G.killCooldown > 0) html = `Kill ready in ${Math.ceil(G.killCooldown)}s`;
+    promptEl.innerHTML = html;
+    promptEl.classList.toggle('hidden', !html);
+    crosshairEl.style.display = IS_TOUCH ? 'none' : 'block';
+  }
+
+  /* =====================================================================
+     INTERACTION
+  ===================================================================== */
+  const INTER = { use: false, useLabel: '', report: false, vent: false, kill: false, killName: '' };
+  function nearestKillTarget() {
+    const local = G.players[G.localId];
+    const fwd = Math.atan2(-Math.sin(local.yaw), -Math.cos(local.yaw));
+    let best = null, bd = 2.35 * 2.35;
+    for (const o of G.players) {
+      if (!o.alive || o.isImpostor) continue;
+      const d = dist2(local.pos.x, local.pos.z, o.pos.x, o.pos.z);
+      if (d >= bd) continue;
+      const ang = Math.atan2(o.pos.x - local.pos.x, o.pos.z - local.pos.z);
+      let diff = Math.abs(ang - fwd); if (diff > Math.PI) diff = Math.PI * 2 - diff;
+      if (diff < 1.0) { best = o; bd = d; }
+    }
+    return best;
+  }
+
+  function updateInteraction() {
+    const local = G.players[G.localId];
+    const isImp = local.isImpostor, alive = local.alive;
+    INTER.use = false; INTER.useLabel = ''; INTER.report = false; INTER.vent = false; INTER.kill = false; INTER.killName = '';
+    if (alive) {
+      // body report
+      for (const b of G.bodies) if (dist2(local.pos.x, local.pos.z, b.x, b.z) < 5.3) { INTER.report = true; break; }
+      // vent
+      if (isImp && local.lastRoom && VENT_MESHES[local.lastRoom]) {
+        const v = VENT_MESHES[local.lastRoom];
+        if (dist2(local.pos.x, local.pos.z, v.x, v.z) < 6.5) INTER.vent = true;
+      }
+      // kill
+      if (isImp) { const t = nearestKillTarget(); if (t) { INTER.kill = true; INTER.killName = t.name; } }
+    }
+    // use actions
+    if (!isImp) {
+      const cur = currentTaskStation();
+      if (cur && dist2(local.pos.x, local.pos.z, cur.station.x, cur.station.z) < 5.8) {
+        INTER.use = true; INTER.useLabel = cur.task.name;
+      }
+    }
+    if (alive) {
+      for (const key in FIX_MESHES) {
+        const fs = FIX_MESHES[key];
+        const active = (key === 'lights' && G.sabotage.lights) || (key === 'comms' && G.sabotage.comms) ||
+                       (key === 'reactor' && G.sabotage.reactor) || ((key === 'o2a' || key === 'o2b') && G.sabotage.o2);
+        if (active && !fs.station.fixed && dist2(local.pos.x, local.pos.z, fs.station.x, fs.station.z) < 5.8) {
+          INTER.use = true; INTER.useLabel = fs.station.label;
+        }
+      }
+      if (!INTER.use && dist2(local.pos.x, local.pos.z, EMERGENCY.x, EMERGENCY.z) < 5.5 &&
+          G.emergencyCooldown <= 0 && G.emergencyUsed < SETTINGS.emergencyMeetings) {
+        INTER.use = true; INTER.useLabel = 'Emergency Meeting';
+      }
+    }
+  }
+
+  /* =====================================================================
+     ACTIONS
+  ===================================================================== */
+  function tryUse() {
+    if (G.state !== 'playing') return;
+    const local = G.players[G.localId];
+    if (!local.isImpostor) {
+      const cur = currentTaskStation();
+      if (cur && dist2(local.pos.x, local.pos.z, cur.station.x, cur.station.z) < 5.8) {
+        SFX.play('use'); openTaskMinigame(cur.task, cur.stage, cur.station); return;
+      }
+    }
+    if (local.alive) {
+      for (const key in FIX_MESHES) {
+        const fs = FIX_MESHES[key];
+        const active = (key === 'lights' && G.sabotage.lights) || (key === 'comms' && G.sabotage.comms) ||
+                       (key === 'reactor' && G.sabotage.reactor) || ((key === 'o2a' || key === 'o2b') && G.sabotage.o2);
+        if (active && !fs.station.fixed && dist2(local.pos.x, local.pos.z, fs.station.x, fs.station.z) < 5.8) {
+          SFX.play('use'); openFixMinigame(fs.station); return;
+        }
+      }
+      if (dist2(local.pos.x, local.pos.z, EMERGENCY.x, EMERGENCY.z) < 5.5 && G.emergencyCooldown <= 0 && G.emergencyUsed < SETTINGS.emergencyMeetings) {
+        G.emergencyUsed++; G.emergencyCooldown = SETTINGS.emergencyCooldown;
+        SFX.play('emergency'); startMeeting(local, null); return;
+      }
+    }
+  }
+  function tryReport() {
+    if (G.state !== 'playing') return;
+    const local = G.players[G.localId];
+    if (!local.alive) return;
+    for (const b of G.bodies) if (dist2(local.pos.x, local.pos.z, b.x, b.z) < 5.3) { startMeeting(local, b); return; }
+  }
+  function tryKill() {
+    if (G.state !== 'playing') return;
+    const local = G.players[G.localId];
+    if (!local.alive || !local.isImpostor || G.killCooldown > 0) return;
+    const t = nearestKillTarget();
+    if (t) doKill(local, t);
+  }
+  function tryVent() {
+    if (G.state !== 'playing') return;
+    const local = G.players[G.localId];
+    if (!local.alive || !local.isImpostor) return;
+    const room = local.lastRoom;
+    if (room && VENT_MESHES[room] && dist2(local.pos.x, local.pos.z, VENT_MESHES[room].x, VENT_MESHES[room].z) < 6.5) {
+      openVentMenu(room);
+    }
+  }
+  function ventTo(roomKey, destRoom) {
+    const p = G.players[G.localId];
+    const v = VENT_MESHES[destRoom];
+    if (!v) return;
+    p.pos.x = v.x; p.pos.z = v.z; p.lastRoom = destRoom;
+    SFX.play('vent');
+    for (const w of G.players) if (w.alive && !w.isImpostor && dist2(w.pos.x, w.pos.z, p.pos.x, p.pos.z) < 49) w.suspicion[G.localId] = Math.min(1, w.suspicion[G.localId] + 0.9);
+    closeVentMenu();
+  }
+
+  function openSabotageMenu() {
+    if (G.state !== 'playing') return;
+    const local = G.players[G.localId];
+    if (!local.isImpostor) return;
+    if (G.sabotageCooldown > 0) { announce(`Sabotage ready in ${Math.ceil(G.sabotageCooldown)}s`, 1.5); return; }
+    exitLock();
+    sabotageScreen.classList.remove('hidden');
+    sabotageScreen.querySelectorAll('.sab-item').forEach(it => {
+      const k = it.dataset.sab;
+      const criticalActive = G.sabotage.reactor || G.sabotage.o2;
+      it.disabled = (k === 'reactor' || k === 'o2') ? criticalActive : G.sabotage[k];
+    });
+  }
+  function openVentMenu(room) {
+    exitLock();
+    ventScreen.classList.remove('hidden');
+    const grid = $('ventGrid'); grid.innerHTML = '';
+    const group = VENT_GROUPS.find(g => g.includes(room));
+    for (const r of group) {
+      if (r === room || !VENT_MESHES[r]) continue;
+      const btn = el(`<div class="opt-pill" style="text-align:center;">${esc(roomLabel(r))}</div>`);
+      btn.addEventListener('click', () => ventTo(room, r));
+      grid.appendChild(btn);
+    }
+  }
+  function closeVentMenu() { ventScreen.classList.add('hidden'); relockIfPlaying(); }
+  function closeSabotageMenu() { sabotageScreen.classList.add('hidden'); relockIfPlaying(); }
+
+  /* =====================================================================
+     POINTER LOCK + OVERLAYS
+  ===================================================================== */
+  function exitLock() { if (document.pointerLockElement) document.exitPointerLock(); }
+  function releasePointerLockGuard() { exitLock(); }
+  function overlayOpen() {
+    return minigameHost.classList.contains('open') || $('meeting').classList.contains('open') ||
+           !sabotageScreen.classList.contains('hidden') || !ventScreen.classList.contains('hidden') ||
+           !pauseScreen.classList.contains('hidden') || !menuScreen.classList.contains('hidden') ||
+           !lobbyScreen.classList.contains('hidden') || !gameoverScreen.classList.contains('hidden');
+  }
+  function relockIfPlaying() {
+    if (G.state === 'playing' && !IS_TOUCH && !overlayOpen()) {
+      const c = document.getElementById('c');
+      c.requestPointerLock && c.requestPointerLock();
+    }
+  }
+
+  /* =====================================================================
+     END GAME
+  ===================================================================== */
+  function endGame(winner, reason) {
+    if (G.state === 'over') return;
+    G.state = 'over';
+    closeMG(false); exitLock();
+    hudEl.classList.add('hidden');
+    const local = G.players[G.localId];
+    const localWon = winner === 'crew' ? !local.isImpostor : local.isImpostor;
+    $('goTitle').textContent = localWon ? 'VICTORY' : 'DEFEAT';
+    $('goTitle').style.color = localWon ? '#3ce37f' : '#ff5a6b';
+    $('goSub').textContent = reason + (winner === 'crew' ? '  ·  The crew survived.' : '  ·  The impostors took over the ship.') +
+      `  (You were ${local.isImpostor ? 'an Impostor' : 'a Crewmate'}.)`;
+    gameoverScreen.classList.remove('hidden');
+    SFX.play(localWon ? 'win' : 'lose');
+  }
+
+  /* =====================================================================
+     MAIN LOOP
+  ===================================================================== */
+  let lastT = performance.now();
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+    const t = clock ? clock.getElapsedTime() : now / 1000;
+    G.time += dt;
+    for (const a of PROP_ANIM) a.fn(a.obj, t);
+
+    if (G.state === 'menu' || G.state === 'lobby' || G.state === 'over') {
+      camera.position.set(EMERGENCY.x + Math.sin(t * 0.35) * 7.5, 2.7, EMERGENCY.z + Math.cos(t * 0.35) * 7.5);
+      camera.lookAt(EMERGENCY.x, 1.3, EMERGENCY.z);
+    } else if (G.state === 'playing') {
+      updateLocal(dt);
+      updateBots(dt);
+      tickSabotage(dt);
+      updateInteraction();
+      updateButtons(INTER);
+      showPrompt(INTER);
+      updateProgress();
+      updateSabotageBanner();
+      updateMinimap();
+      updateAdminTable(dt);
+      if (G.annTimer > 0) { G.annTimer -= dt; if (G.annTimer <= 0) announceEl.textContent = ''; }
+    } else if (G.state === 'meeting') {
+      updateMeeting(dt);
+    }
+
+    // lights-out atmosphere
+    const target = G.lightsOn ? 1 : 0.2;
+    lightLevel = lerp(lightLevel, target, dt * 2.5);
+    hemi.intensity = 0.85 * (0.45 + 0.55 * lightLevel);
+    dirLight.intensity = 1.0 * lightLevel;
+    for (const p of LIGHT_PANELS) p.material.emissiveIntensity = 1.15 * (0.22 + 0.78 * lightLevel);
+    scene.fog.near = lerp(scene.fog.near, G.lightsOn ? 20 : 2.5, dt * 3);
+    scene.fog.far = lerp(scene.fog.far, G.lightsOn ? 62 : 10, dt * 3);
+
+    renderer.render(scene, camera);
+  }
+
+  /* =====================================================================
+     LOBBY / MENU LOGIC
+  ===================================================================== */
+  function buildSwatches() {
+    const wrap = $('swatches'); wrap.innerHTML = '';
+    for (const c of COLORS) {
+      const s = el(`<div class="swatch" data-c="${c.id}" style="background:${c.css}"></div>`);
+      if (c.id === lobbyColor) s.classList.add('sel');
+      s.addEventListener('click', () => {
+        lobbyColor = c.id; SFX.play('click');
+        wrap.querySelectorAll('.swatch').forEach(x => x.classList.toggle('sel', x.dataset.c === c.id));
+      });
+      wrap.appendChild(s);
+    }
+  }
+  function updateLobbyLabels() {
+    const pc = +$('playerCount').value, ic = +$('impCount').value;
+    $('playerCountLabel').textContent = pc;
+    $('impCountLabel').textContent = ic;
+  }
+  function clampImpostorCount() {
+    const pc = +$('playerCount').value;
+    let ic = +$('impCount').value;
+    ic = Math.min(3, Math.max(1, ic), pc - 1);
+    $('impCount').value = ic;
+    updateLobbyLabels();
+  }
+
+  function startGame() {
+    SFX.init(); SFX.resume(); SFX.play('use');
+    SETTINGS.players = +$('playerCount').value;
+    SETTINGS.impostors = +$('impCount').value;
+    nameInput = $('nameInput');
+    // apply lobby color + name to local
+    initPlayers();
+    G.players[0].colorId = lobbyColor;
+    refreshTaskList();
+    updateProgress();
+    lobbyScreen.classList.add('hidden');
+    hudEl.classList.remove('hidden');
+    if (IS_TOUCH) touchEl.classList.remove('hidden'); else touchEl.classList.add('hidden');
+    G.state = 'playing';
+    updateMinimap();
+    updateSabotageBanner();
+    relockIfPlaying();
+  }
+
+  function toLobby() {
+    G.state = 'lobby';
+    closeMG(false); exitLock();
+    hudEl.classList.add('hidden'); gameoverScreen.classList.add('hidden'); pauseScreen.classList.add('hidden');
+    $('meeting').classList.remove('open');
+    lobbyScreen.classList.remove('hidden');
+  }
+  function toMenu() {
+    G.state = 'menu';
+    closeMG(false); exitLock();
+    hudEl.classList.add('hidden'); lobbyScreen.classList.add('hidden'); gameoverScreen.classList.add('hidden'); pauseScreen.classList.add('hidden');
+    $('meeting').classList.remove('open');
+    menuScreen.classList.remove('hidden');
+  }
+  function openPause() {
+    if (G.state !== 'playing') return;
+    G.state = 'paused'; exitLock();
+    pauseScreen.classList.remove('hidden');
+  }
+  function resumeGame() {
+    pauseScreen.classList.add('hidden');
+    G.state = 'playing';
+    relockIfPlaying();
+  }
+
+  /* =====================================================================
+     KEYBOARD / POINTER WIRING
+  ===================================================================== */
+  function wireInput() {
+    addEventListener('keydown', e => {
+      if (e.code === 'Tab') { e.preventDefault(); if (G.state === 'playing' && G.players[G.localId].isImpostor && !minigameHost.classList.contains('open')) openSabotageMenu(); return; }
+      if (G.state === 'playing') {
+        const busy = minigameHost.classList.contains('open');
+        if (!busy) {
+          if (e.code === 'KeyE') tryUse();
+          else if (e.code === 'KeyR') tryReport();
+          else if (e.code === 'KeyQ') tryKill();
+          else if (e.code === 'KeyV') tryVent();
+        }
+        if (e.code === 'Escape') openPause();
+      } else if (G.state === 'paused') {
+        if (e.code === 'Escape') resumeGame();
+      } else if (G.state === 'meeting') {
+        if (e.code === 'Escape') { /* locked during meeting */ }
+      }
+      if (e.code === 'Escape' && minigameHost.classList.contains('open')) { closeMG(true); relockIfPlaying(); }
+      if (e.code === 'Escape' && !sabotageScreen.classList.contains('hidden')) closeSabotageMenu();
+      if (e.code === 'Escape' && !ventScreen.classList.contains('hidden')) closeVentMenu();
+      if (e.code === 'Enter' && G.state === 'meeting' && document.activeElement !== $('chatInput')) { confirmLocalVote(); }
+    });
+
+    const cv = document.getElementById('c');
+    cv.addEventListener('click', () => { if (G.state === 'playing' && !IS_TOUCH && !overlayOpen()) cv.requestPointerLock && cv.requestPointerLock(); });
+    document.addEventListener('pointerlockchange', () => {
+      pointerLocked = document.pointerLockElement === cv;
+      Input.locked = pointerLocked;
+      if (!pointerLocked && G.state === 'playing' && !overlayOpen() && !IS_TOUCH) openPause();
+    });
+    document.addEventListener('pointerlockerror', () => { pointerLocked = false; });
+
+    // buttons
+    $('btnPlay').onclick = () => { SFX.init(); SFX.resume(); SFX.play('click'); menuScreen.classList.add('hidden'); lobbyScreen.classList.remove('hidden'); G.state = 'lobby'; };
+    $('btnHow').onclick = () => { SFX.play('click'); $('howText').classList.toggle('hidden'); };
+    $('btnBackMenu').onclick = () => { SFX.play('click'); toMenu(); };
+    $('btnStart').onclick = () => { clampImpostorCount(); startGame(); };
+    $('btnResume').onclick = () => { SFX.play('click'); resumeGame(); };
+    $('btnPauseQuit').onclick = () => { SFX.play('click'); toLobby(); };
+    $('btnAgain').onclick = () => { SFX.play('click'); startGame(); };
+    $('btnGoMenu').onclick = () => { SFX.play('click'); toMenu(); };
+
+    $('playerCount').addEventListener('input', () => { clampImpostorCount(); SFX.play('hover'); });
+    $('impCount').addEventListener('input', () => { clampImpostorCount(); SFX.play('hover'); });
+
+    document.querySelectorAll('#rolePick .opt-pill').forEach(pill => pill.addEventListener('click', () => {
+      document.querySelectorAll('#rolePick .opt-pill').forEach(p => p.classList.remove('sel'));
+      pill.classList.add('sel'); lobbyRoleSelection = pill.dataset.role; SFX.play('click');
+    }));
+
+    // action buttons
+    btnUse.onclick = () => tryUse();
+    btnReport.onclick = () => tryReport();
+    btnKill.onclick = () => tryKill();
+    btnVent.onclick = () => tryVent();
+    btnSab.onclick = () => openSabotageMenu();
+    tUse.onclick = () => tryUse();
+    tReport.onclick = () => tryReport();
+    tKill.onclick = () => tryKill();
+    tVent.onclick = () => tryVent();
+    tSab.onclick = () => openSabotageMenu();
+    $('btnSabClose').onclick = () => { SFX.play('click'); closeSabotageMenu(); };
+    $('btnVentClose').onclick = () => { SFX.play('click'); closeVentMenu(); };
+    sabotageScreen.querySelectorAll('.sab-item').forEach(it => it.addEventListener('click', () => {
+      if (it.disabled) return;
+      const k = it.dataset.sab;
+      SFX.play('click'); closeSabotageMenu();
+      callSabotage(k, G.players[G.localId]);
+    }));
+
+    // meeting
+    $('btnVoteConfirm').onclick = () => { SFX.play('vote'); confirmLocalVote(); };
+    $('btnSkip').onclick = () => { MEET.selId = -1; MEET.localVoted = false; confirmLocalVote(); };
+    $('btnSend').onclick = sendChat;
+    $('chatInput').addEventListener('keydown', e => { if (e.code === 'Enter') sendChat(); });
+  }
+  function sendChat() {
+    const inp = $('chatInput'); const txt = inp.value.trim();
+    if (!txt) return;
+    addChat(G.localId, colorOf(G.players[G.localId].colorId).css, txt);
+    inp.value = '';
+    // bots occasionally respond
+    if (Math.random() < 0.6) {
+      const t = RAND(G.players.filter(p => p.alive && !p.isLocal));
+      setTimeout(() => { if (G.state === 'meeting') addChat(t.id, colorOf(t.colorId).css, botChatLine(t)); }, rnd(600, 1400));
+    }
+  }
+
+  /* =====================================================================
+     TOUCH CONTROLS
+  ===================================================================== */
+  function wireTouch() {
+    const joy = $('joy'), knob = $('joyKnob');
+    let jid = null, cx = 0, cy = 0, R = 52;
+    joy.addEventListener('pointerdown', e => {
+      jid = e.pointerId; const r = joy.getBoundingClientRect();
+      cx = r.left + r.width / 2; cy = r.top + r.height / 2;
+      Input.joy.active = true; Input.joy.id = jid;
+      joy.setPointerCapture(e.pointerId);
+    });
+    joy.addEventListener('pointermove', e => {
+      if (e.pointerId !== jid) return;
+      let dx = e.clientX - cx, dy = e.clientY - cy;
+      const m = Math.hypot(dx, dy); if (m > R) { dx *= R / m; dy *= R / m; }
+      knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      Input.joy.dx = dx / R; Input.joy.dy = dy / R;
+    });
+    const joyUp = e => { if (e.pointerId !== jid) return; jid = null; Input.joy.active = false; Input.joy.dx = 0; Input.joy.dy = 0; knob.style.transform = 'translate(-50%,-50%)'; };
+    joy.addEventListener('pointerup', joyUp); joy.addEventListener('pointercancel', joyUp);
+
+    // look: drag anywhere else on the screen
+    let lid = null;
+    document.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'touch') return;
+      const t = e.target;
+      if (t.closest('.joy') || t.closest('.action') || t.closest('#minigame') || t.closest('.screen') || t.closest('#meeting')) return;
+      lid = e.pointerId; Input.touchLook.active = true; Input.touchLook.lx = e.clientX; Input.touchLook.ly = e.clientY;
+    });
+    document.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'touch' || e.pointerId !== lid || !Input.touchLook.active) return;
+      Input.look.x += (e.clientX - Input.touchLook.lx) * 1.2;
+      Input.look.y += (e.clientY - Input.touchLook.ly) * 1.2;
+      Input.touchLook.lx = e.clientX; Input.touchLook.ly = e.clientY;
+    });
+    const lookUp = e => { if (e.pointerId === lid) { lid = null; Input.touchLook.active = false; } };
+    document.addEventListener('pointerup', lookUp); document.addEventListener('pointercancel', lookUp);
+  }
+
+  /* =====================================================================
+     INIT
+  ===================================================================== */
+  function init() {
+    initThree();
+    buildShip();
+    buildFixStations();
+    Input.init();
+    buildSwatches();
+    updateLobbyLabels();
+    wireInput();
+    if (IS_TOUCH) wireTouch();
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+    requestAnimationFrame(animate);
+  }
+
+  init();
+  window.__GAME_READY = true;
+  // debug hook (also used by automated tests)
+  window.__AU = {
+    state: () => G.state, local: () => G.players[G.localId], players: () => G.players, G, MEET,
+    startMeeting: (r) => startMeeting(G.players[r || 0], null),
+    callSabotage: (k) => callSabotage(k, G.players[G.localId]),
+    openTask: () => { const c = currentTaskStation(); if (c) openTaskMinigame(c.task, c.stage, c.station); },
+    closeMG: () => closeMG(false),
+    endMeeting: () => endMeeting(),
+  };
+  </script>
+  <script>
+  setTimeout(function(){
+    if(!window.__GAME_READY){
+      var d=document.createElement('div');
+      d.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(24,9,12,.95);color:#ffc2c2;padding:12px 18px;border-radius:12px;font-size:14px;z-index:999;max-width:90vw;text-align:center;border:1px solid rgba(255,130,130,.45);';
+      d.textContent='⚠ Could not load the 3D engine (Three.js) from the CDN. Check your connection and reload.';
+      document.body.appendChild(d);
+    }
+  }, 6000);
+  </script>
+</body>
+</html>
